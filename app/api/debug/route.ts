@@ -19,7 +19,7 @@ export async function GET() {
     })() : false;
     
     reports.push({ test: "Folder Access", result: exists ? "Found" : "Not Found", writable });
-  } catch (e) {
+  } catch (e: any) {
     reports.push({ test: "Folder Access", result: "Error", error: e.message });
   }
 
@@ -27,7 +27,7 @@ export async function GET() {
   try {
     const drv = sqlite3.verbose();
     reports.push({ test: "SQLite Driver", result: "Loaded", version: "Standard" });
-  } catch (e) {
+  } catch (e: any) {
     reports.push({ test: "SQLite Driver", result: "Failed", error: e.message });
   }
 
