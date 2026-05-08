@@ -115,7 +115,7 @@ export default function TransactionsPage() {
         setFormData({ ...formData, amount: "", party: "", description: "" });
         alert("Transaction recorded successfully!");
       } else {
-        alert("Server Error: " + (result.error || res.statusText || "Database connection failed"));
+        alert("[V2-DEBUG] ERROR DETECTED: " + (result.error || res.statusText || "Critical: No Error Message from Server"));
       }
     } catch (err) {
       alert("Network Error: Could not reach the server. Check your connection.");
