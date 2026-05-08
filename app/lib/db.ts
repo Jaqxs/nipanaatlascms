@@ -11,19 +11,9 @@ let db: Database | null = null;
 export async function getDb() {
   if (db) return db;
 
-  // Force absolute path for Docker stability
-  const dbPath = '/app/data/gbms.db';
-  const dataDir = '/app/data';
-  
-  if (!fs.existsSync(dataDir)) {
-    try {
-      fs.mkdirSync(dataDir, { recursive: true });
-    } catch (e) {
-      console.error("[DB] Could not create /app/data, falling back to local");
-    }
-  }
-
-  console.log(`[DB] Connecting to absolute path: ${dbPath}`);
+  // DIAGNOSTIC: Use /tmp which is ALWAYS writable in Linux
+  const dbPath = '/tmp/gbms.db';
+  console.log(`[DB] DIAGNOSTIC PATH: ${dbPath}`);
   
   try {
     db = await open({
