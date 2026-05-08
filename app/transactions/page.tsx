@@ -93,7 +93,8 @@ export default function TransactionsPage() {
       const amountValue = parseFloat(formData.amount);
       const multiplier = (formData.type === "Gold Purchase" || formData.type === "Op. Expense" || formData.type === "Logistics" || formData.type === "Processing" || formData.type === "Cash Outflow" ? -1 : 1);
       
-      const res = await fetch('/api/transactions', {
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || '';
+      const res = await fetch(`${apiUrl}/api/transactions`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
