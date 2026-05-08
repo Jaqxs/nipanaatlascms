@@ -11,35 +11,35 @@ let db: Database | null = null;
 export async function getDb() {
   if (db) return db;
 
-  // Use an absolute path for production stability
-  const dataDir = '/app/data';
+  const prodDir = '/app/data';
   const localDir = path.join(process.cwd(), 'data');
   
-  // Detect if we are in Docker or Local
-  const targetDir = fs.existsSync(dataDir) ? dataDir : localDir;
-  
-  if (!fs.existsSync(targetDir)) {
-    console.log(`[DB] Creating data directory at ${targetDir}`);
-    fs.mkdirSync(targetDir, { recursive: true });
+  let targetDir = localDir;
+  try {
+    if (fs.existsSync(prodDir)) {
+      targetDir = prodDir;
+    } else {
+      if (!fs.existsSync(localDir)) fs.mkdirSync(localDir, { recursive: true });
+    }
+  } catch (e) {
+    console.error("[DB] Path detection error:", e);
   }
 
   const dbPath = path.join(targetDir, 'gbms.db');
-  console.log(`[DB] Connecting to database at: ${dbPath}`);
+  console.log(`[DB] Using path: ${dbPath}`);
   
   try {
     db = await open({
       filename: dbPath,
       driver: sqlite3.Database
     });
-    console.log(`[DB] Connection successful`);
     
-    // Critical: Enable WAL mode to prevent "Database is locked" errors in Docker
     await db.exec('PRAGMA journal_mode = WAL;');
-    await db.exec('PRAGMA foreign_keys = ON;');
-    
-  } catch (err) {
-    console.error(`[DB] Connection FAILED:`, err);
-    throw err;
+    console.log(`[DB] SQLite initialized in WAL mode`);
+  } catch (err: any) {
+    const msg = `SQLITE_ERROR: ${err.message || 'Unknown'}. Path: ${dbPath}`;
+    console.error(msg);
+    throw new Error(msg);
   }
 
   await db.exec(`
