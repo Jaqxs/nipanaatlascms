@@ -137,11 +137,20 @@ export function TopBar({ onMenuClick }: { onMenuClick?: () => void }) {
               onClick={() => setProfileOpen(!profileOpen)}
               className="flex items-center gap-3 pl-2 hover:bg-paper-50 rounded-lg py-1 pr-2 transition"
             >
-              <div
-                className="w-9 h-9 rounded-full flex items-center justify-center text-sm text-white"
-                style={{ background: "#b8893d" }}
-              >
-                {initials}
+              <div className="flex items-center gap-3">
+                <button 
+                  className="w-9 h-9 rounded-full hover:bg-gold-50 text-ink-muted flex items-center justify-center transition-colors border border-dashed border-gold-200"
+                  onClick={() => alert("JavaScript is ALIVE! The system is responding.")}
+                  title="System Test"
+                >
+                  <i className="ri-tools-line text-lg" />
+                </button>
+                <div
+                  className="w-9 h-9 rounded-full flex items-center justify-center text-sm text-white"
+                  style={{ background: "#b8893d" }}
+                >
+                  {initials}
+                </div>
               </div>
               <div className="hidden lg:block text-left">
                 <div className="text-sm font-medium text-ink leading-tight">{user?.name || "Account"}</div>
