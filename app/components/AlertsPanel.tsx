@@ -3,11 +3,19 @@ import { useState } from "react";
 import { ALERTS } from "../lib/mockData";
 
 export interface AlertItem {
-  kind: string;
-  severity: string;
+  id?: string;
+  kind?: string;
+  severity?: string;
+  type?: string; // alias for severity
   title: string;
-  body: string;
+  body?: string;
+  desc?: string; // alias for body
   time: string;
+}
+
+export interface AlertsPanelProps {
+  alerts?: AlertItem[];
+  onOpen?: (a: AlertItem) => void;
 }
 
 const ICONS: Record<string, string> = {
@@ -37,16 +45,18 @@ const TABS = [
   { id: "info", label: "Watch" },
 ];
 
-export function AlertsPanel({ onOpen }: { onOpen?: (a: AlertItem) => void }) {
+export function AlertsPanel({ alerts: propAlerts, onOpen }: AlertsPanelProps) {
   const [tab, setTab] = useState("all");
+  const alerts = propAlerts || ALERTS;
 
-  const counts = ALERTS.reduce<Record<string, number>>((acc, a) => {
-    acc[a.severity] = (acc[a.severity] || 0) + 1;
+  const counts = alerts.reduce<Record<string, number>>((acc, a) => {
+    const sev = a.severity || a.type || 'info';
+    acc[sev] = (acc[sev] || 0) + 1;
     acc.all = (acc.all || 0) + 1;
     return acc;
   }, {});
 
-  const filtered = tab === "all" ? ALERTS : ALERTS.filter((a) => a.severity === tab);
+  const filtered = tab === "all" ? alerts : alerts.filter((a) => (a.severity || a.type) === tab);
 
   return (
     <div className="surface p-5 flex flex-col">
@@ -89,7 +99,10 @@ export function AlertsPanel({ onOpen }: { onOpen?: (a: AlertItem) => void }) {
             All clear in this category.
           </div>
         ) : filtered.map((a, i) => {
-          const sty = SEVERITY_STYLE[a.severity];
+          const sev = a.severity || a.type || 'info';
+          const kind = a.kind || 'anomaly';
+          const body = a.body || a.desc || '';
+          const sty = SEVERITY_STYLE[sev] || SEVERITY_STYLE.info;
           return (
             <button
               key={i}
@@ -101,7 +114,7 @@ export function AlertsPanel({ onOpen }: { onOpen?: (a: AlertItem) => void }) {
                 className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0"
                 style={{ background: sty.iconBg, color: sty.iconFg }}
               >
-                <i className={`${ICONS[a.kind]} text-sm`} />
+                <i className={`${ICONS[kind] || ICONS.anomaly} text-sm`} />
               </div>
               <div className="flex-1 min-w-0">
                 <div className="flex items-start justify-between gap-2 mb-0.5">
@@ -110,10 +123,10 @@ export function AlertsPanel({ onOpen }: { onOpen?: (a: AlertItem) => void }) {
                     className="text-[10px] font-medium uppercase tracking-wider px-1.5 py-0.5 rounded shrink-0"
                     style={{ background: sty.pillBg, color: sty.pillFg }}
                   >
-                    {SEVERITY_LABEL[a.severity]}
+                    {SEVERITY_LABEL[sev]}
                   </span>
                 </div>
-                <div className="text-xs text-ink-muted leading-relaxed">{a.body}</div>
+                <div className="text-xs text-ink-muted leading-relaxed">{body}</div>
                 <div className="text-[10px] text-ink-faint mt-1.5 uppercase tracking-wider flex items-center gap-2">
                   <span>{a.time}</span>
                   <span className="opacity-0 group-hover:opacity-100 transition text-gold-700 ml-auto">
