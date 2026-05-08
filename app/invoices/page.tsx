@@ -40,6 +40,8 @@ export default function InvoicesPage() {
     }
   }, [searchParams]);
 
+  const [confirming, setConfirming] = useState<{ inv: any; action: string } | null>(null);
+
   const fetchInvoices = async () => {
     setLoading(true);
     try {
@@ -51,6 +53,23 @@ export default function InvoicesPage() {
       setInvoices([]);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleConfirmAction = async () => {
+    if (!confirming) return;
+    try {
+      const res = await fetch('/api/invoices', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: confirming.inv.id, action: confirming.action })
+      });
+      if (res.ok) {
+        setConfirming(null);
+        fetchInvoices();
+      }
+    } catch (err) {
+      alert("Error updating invoice");
     }
   };
 
@@ -158,12 +177,13 @@ export default function InvoicesPage() {
                     { label: "View invoice", icon: "ri-eye-line", onClick: () => setPreview(i) },
                     { label: "Download PDF", icon: "ri-download-line", onClick: () => alert(`Download ${i.no}`) },
                     { label: "Email to customer", icon: "ri-mail-send-line", onClick: () => alert(`Email ${i.customer}`) },
-                    ...(i.status === "Overdue" || i.status === "Sent" ? [
+                    ...(i.status === "Overdue" || i.status === "Sent" || i.status === "pending" ? [
                       { label: "Send reminder", icon: "ri-notification-line", onClick: () => alert("Reminder sent") },
-                      { label: "Mark as paid", icon: "ri-check-double-line", onClick: () => alert("Marked paid") },
+                      { label: "Mark as paid", icon: "ri-check-double-line", onClick: () => setConfirming({ inv: i, action: 'pay' }) },
                     ] : []),
                     { label: "Duplicate", icon: "ri-file-copy-line", onClick: () => alert("Duplicated"), divider: true },
-                    { label: "Cancel invoice", icon: "ri-close-circle-line", onClick: () => alert("Cancelled"), danger: true, divider: true },
+                    { label: "Cancel invoice", icon: "ri-close-circle-line", onClick: () => setConfirming({ inv: i, action: 'void' }), danger: true, divider: true },
+                    { label: "Delete", icon: "ri-delete-bin-line", onClick: () => setConfirming({ inv: i, action: 'delete' }), danger: true, divider: true },
                   ]} />
                 </td>
               </tr>
@@ -208,6 +228,13 @@ export default function InvoicesPage() {
             </li>
           ))}
         </ul>
+      </Modal>
+
+      {/* Action confirmation */}
+      <Modal open={!!confirming} onClose={() => setConfirming(null)}
+        eyebrow="Confirm Action" title={confirming ? `${confirming.action[0].toUpperCase() + confirming.action.slice(1)} Invoice ${confirming.inv.no}?` : ""}
+        footer={<><button className="btn-secondary" onClick={() => setConfirming(null)}>Cancel</button><button className="btn-primary" onClick={handleConfirmAction}>Confirm</button></>}>
+        <p className="text-sm text-ink-soft">This will update the invoice status and update the linked ledger entries.</p>
       </Modal>
     </div>
   );

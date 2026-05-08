@@ -64,6 +64,25 @@ export default function TransactionsPage() {
     }
   };
 
+  const handleConfirmAction = async () => {
+    if (!confirming) return;
+    try {
+      const res = await fetch('/api/transactions', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ref: confirming.tx.ref, action: confirming.action })
+      });
+      if (res.ok) {
+        setConfirming(null);
+        fetchTransactions();
+      } else {
+        alert("Action failed on server");
+      }
+    } catch (err) {
+      alert("Error processing action");
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
@@ -204,7 +223,7 @@ export default function TransactionsPage() {
           <button className="btn-secondary" onClick={() => setConfirming(null)}>Cancel</button>
           <button className={confirming?.action === "approve" ? "btn-primary" : "btn-secondary"}
             style={confirming?.action !== "approve" ? { background: "#a85944", color: "#fff", border: "none" } : undefined}
-            onClick={() => setConfirming(null)}>
+            onClick={handleConfirmAction}>
             {confirming?.action === "approve" ? "Approve" : confirming?.action === "reject" ? "Reject" : "Delete"}
           </button>
         </>}>

@@ -88,6 +88,23 @@ export default function InventoryPage() {  const [tab, setTab] = useState<"batch
     }
   };
 
+  const handleConfirmAction = async () => {
+    if (!confirm) return;
+    try {
+      const res = await fetch('/api/inventory', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: confirm.batch.id, action: confirm.action })
+      });
+      if (res.ok) {
+        setConfirm(null);
+        fetchInventory();
+      }
+    } catch (err) {
+      alert("Error updating inventory");
+    }
+  };
+
   const inventoryArray = Array.isArray(inventory) ? inventory : [];
   const totalWeight = inventoryArray.reduce((a, b) => a + (b.weight || 0), 0);
   const fineWeight = inventoryArray.reduce((a, b) => a + (b.fine || 0), 0);
@@ -273,7 +290,7 @@ export default function InventoryPage() {  const [tab, setTab] = useState<"batch
       {/* Action confirmation */}
       <Modal open={!!confirm} onClose={() => setConfirm(null)}
         eyebrow={confirm?.action} title={confirm ? `${confirm.action[0].toUpperCase() + confirm.action.slice(1)} ${confirm.batch.batch}?` : ""}
-        footer={<><button className="btn-secondary" onClick={() => setConfirm(null)}>Cancel</button><button className="btn-primary" onClick={() => setConfirm(null)}>Confirm</button></>}>
+        footer={<><button className="btn-secondary" onClick={() => setConfirm(null)}>Cancel</button><button className="btn-primary" onClick={handleConfirmAction}>Confirm</button></>}>
         <p className="text-sm text-ink-soft">A movement log entry will be created with full attribution.</p>
       </Modal>
     </div>

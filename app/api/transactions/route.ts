@@ -41,3 +41,22 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: 'Failed to create transaction' }, { status: 500 });
   }
 }
+
+export async function PATCH(request: Request) {
+  try {
+    const { ref, action } = await request.json();
+    const db = await getDb();
+
+    if (action === 'delete') {
+      await db.run('DELETE FROM transactions WHERE ref = ?', [ref]);
+      return NextResponse.json({ success: true });
+    }
+
+    const status = action === 'approve' ? 'confirmed' : 'rejected';
+    await db.run('UPDATE transactions SET status = ? WHERE ref = ?', [status, ref]);
+    
+    return NextResponse.json({ success: true });
+  } catch (error) {
+    return NextResponse.json({ error: 'Failed to update transaction' }, { status: 500 });
+  }
+}
