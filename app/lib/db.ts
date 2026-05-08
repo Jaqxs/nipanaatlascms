@@ -1,9 +1,6 @@
 import sqlite3 from 'sqlite3';
 import { open, Database } from 'sqlite';
 import path from 'path';
-import { RECENT_TX, PENDING_INVOICES, INVENTORY_BATCHES, CUSTOMERS, SUPPLIERS } from './mockData';
-import crypto from 'crypto';
-
 import fs from 'fs';
 
 let db: Database | null = null;
@@ -11,22 +8,31 @@ let db: Database | null = null;
 export async function getDb() {
   if (db) return db;
 
-  // DIAGNOSTIC: Use /tmp which is ALWAYS writable in Linux
-  const dbPath = '/tmp/gbms.db';
-  console.log(`[DB] DIAGNOSTIC PATH: ${dbPath}`);
+  // Use absolute path for Docker stability
+  const dbPath = '/app/data/gbms.db';
+  const dataDir = '/app/data';
   
+  if (!fs.existsSync(dataDir)) {
+    try {
+      fs.mkdirSync(dataDir, { recursive: true });
+    } catch (e) {
+      console.error("[DB] Path creation error:", e);
+    }
+  }
+
   try {
+    const sqlite3Verbose = sqlite3.verbose();
     db = await open({
       filename: dbPath,
-      driver: sqlite3.Database
+      driver: sqlite3Verbose.Database
     });
     
     await db.exec('PRAGMA journal_mode = WAL;');
-    console.log(`[DB] SQLite initialized in WAL mode`);
+    await db.exec('PRAGMA foreign_keys = ON;');
+    console.log(`[DB] Successfully connected to ${dbPath}`);
   } catch (err: any) {
-    const msg = `SQLITE_ERROR: ${err.message || 'Unknown'}. Path: ${dbPath}`;
-    console.error(msg);
-    throw new Error(msg);
+    console.error(`[DB] FATAL ERROR: ${err.message}`);
+    throw new Error(`SQLITE_DRIVER_ERROR: ${err.message}`);
   }
 
   await db.exec(`
@@ -108,13 +114,5 @@ export async function getDb() {
     );
   `);
 
-  // Seed settings
-  const settingsCount = await db.get('SELECT COUNT(*) as count FROM settings');
-  if (settingsCount.count === 0) {
-    await db.run('INSERT INTO settings (key, value) VALUES (?, ?)', ['gold_price', JSON.stringify({ current: 0, asOf: 'Initializing...', source: 'System' })]);
-    await db.run('INSERT INTO settings (key, value) VALUES (?, ?)', ['company_profile', JSON.stringify({ name: 'Your Company', tin: '', address: '', email: '', currency: 'USD' })]);
-  }
-
   return db;
 }
-
