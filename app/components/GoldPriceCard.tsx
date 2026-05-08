@@ -4,7 +4,7 @@ import { GOLD_PRICE } from "../lib/mockData";
 
 interface Props {
   current?: number;
-  change?: string | number;
+  delta?: number;
   asOf?: string;
   history?: number[];
   isAdmin?: boolean;
@@ -13,15 +13,17 @@ interface Props {
 
 export function GoldPriceCard({ 
   current: propCurrent, 
+  delta: propDelta, 
   asOf: propAsOf, 
   history: propHistory, 
   isAdmin, 
   onUpdate 
 }: Props) {
   const current = propCurrent ?? GOLD_PRICE.current;
+  const delta = propDelta ?? GOLD_PRICE.delta;
   const asOf = propAsOf ?? GOLD_PRICE.asOf;
   const history = propHistory && propHistory.length > 0 ? propHistory : (GOLD_PRICE.history.length > 0 ? GOLD_PRICE.history : [0]);
-  const { delta, source } = GOLD_PRICE;
+  const { source } = GOLD_PRICE;
   
   const high = Math.max(...history);
   const low = Math.min(...history);

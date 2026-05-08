@@ -149,9 +149,9 @@ export default function Dashboard() {
         <div className="space-y-6">
           <GoldPriceCard
             current={GOLD_PRICE.current}
-            change={GOLD_PRICE.change}
+            delta={GOLD_PRICE.delta}
             asOf={GOLD_PRICE.asOf}
-            history={GOLD_PRICE.history}
+            history={GOLD_PRICE.history as number[]}
             onUpdate={() => setPriceOpen(true)}
           />
 
