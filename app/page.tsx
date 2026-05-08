@@ -184,7 +184,7 @@ export default function Dashboard() {
               time: "2h ago",
               type: "critical"
             }))}
-            onDetail={setAlertDetail}
+            onOpen={setAlertDetail}
           />
         </div>
       </div>
