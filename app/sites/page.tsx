@@ -57,9 +57,13 @@ export default function SitesPage() {
         setCreating(false);
         setFormData({ name: "", location: "", manager: "", type: "Mining", productionRate: "0" });
         fetchSites();
+        alert("Site added successfully!");
+      } else {
+        const err = await res.json().catch(() => ({ error: "Server failed" }));
+        alert("Error: " + err.error);
       }
     } catch (err) {
-      alert("Failed to create site");
+      alert("Failed to create site. Check your connection.");
     }
   };
 

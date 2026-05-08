@@ -101,7 +101,13 @@ export default function TransactionsPage() {
           amount: amountValue * multiplier
         })
       });
-      const result = await res.json();
+      
+      let result: any = {};
+      try {
+        result = await res.json();
+      } catch (e) {
+        console.error("Non-JSON response received");
+      }
       
       if (res.ok) {
         setCreating(false);
@@ -109,7 +115,7 @@ export default function TransactionsPage() {
         setFormData({ ...formData, amount: "", party: "", description: "" });
         alert("Transaction recorded successfully!");
       } else {
-        alert("Server Error: " + (result.error || "Unknown error"));
+        alert("Server Error: " + (result.error || res.statusText || "Database connection failed"));
       }
     } catch (err) {
       alert("Network Error: Could not reach the server. Check your connection.");

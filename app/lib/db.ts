@@ -32,6 +32,11 @@ export async function getDb() {
       driver: sqlite3.Database
     });
     console.log(`[DB] Connection successful`);
+    
+    // Critical: Enable WAL mode to prevent "Database is locked" errors in Docker
+    await db.exec('PRAGMA journal_mode = WAL;');
+    await db.exec('PRAGMA foreign_keys = ON;');
+    
   } catch (err) {
     console.error(`[DB] Connection FAILED:`, err);
     throw err;
