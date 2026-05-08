@@ -93,7 +93,7 @@ export default function CashFlowPage() {
 
   const flows: Flow[] = transactions.map(t => ({
     date: t.date,
-    type: t.amount >= 0 ? "in" : "out",
+    type: (t.amount >= 0 ? "in" : "out") as "in" | "out",
     category: t.type,
     desc: t.party + (t.ref ? ` · ${t.ref}` : ''),
     amount: Math.abs(t.amount)
