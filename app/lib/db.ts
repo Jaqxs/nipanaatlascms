@@ -11,18 +11,31 @@ let db: Database | null = null;
 export async function getDb() {
   if (db) return db;
 
-  // For production Docker environments, we prefer a dedicated 'data' folder
-  const dataDir = path.join(process.cwd(), 'data');
-  if (!fs.existsSync(dataDir)) {
-    fs.mkdirSync(dataDir, { recursive: true });
+  // Use an absolute path for production stability
+  const dataDir = '/app/data';
+  const localDir = path.join(process.cwd(), 'data');
+  
+  // Detect if we are in Docker or Local
+  const targetDir = fs.existsSync(dataDir) ? dataDir : localDir;
+  
+  if (!fs.existsSync(targetDir)) {
+    console.log(`[DB] Creating data directory at ${targetDir}`);
+    fs.mkdirSync(targetDir, { recursive: true });
   }
 
-  const dbPath = process.env.DATABASE_URL || path.join(dataDir, 'gbms.db');
+  const dbPath = path.join(targetDir, 'gbms.db');
+  console.log(`[DB] Connecting to database at: ${dbPath}`);
   
-  db = await open({
-    filename: dbPath,
-    driver: sqlite3.Database
-  });
+  try {
+    db = await open({
+      filename: dbPath,
+      driver: sqlite3.Database
+    });
+    console.log(`[DB] Connection successful`);
+  } catch (err) {
+    console.error(`[DB] Connection FAILED:`, err);
+    throw err;
+  }
 
   await db.exec(`
     CREATE TABLE IF NOT EXISTS transactions (

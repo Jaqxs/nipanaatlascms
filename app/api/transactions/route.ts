@@ -23,6 +23,7 @@ export async function GET(request: Request) {
 export async function POST(request: Request) {
   try {
     const body = await request.json();
+    console.log(`[API] Creating transaction:`, body);
     const db = await getDb();
     
     const id = crypto.randomUUID();
@@ -35,9 +36,10 @@ export async function POST(request: Request) {
     );
 
     const newTx = await db.get('SELECT * FROM transactions WHERE id = ?', id);
+    console.log(`[API] Transaction saved:`, newTx.ref);
     return NextResponse.json(newTx);
   } catch (error) {
-    console.error(error);
+    console.error(`[API] Create transaction FAILED:`, error);
     return NextResponse.json({ error: 'Failed to create transaction' }, { status: 500 });
   }
 }
