@@ -1,4 +1,5 @@
 "use client";
+export const dynamic = "force-dynamic";
 import { useState, useEffect } from "react";
 import { useSearchParams } from "next/navigation";
 import { PageHeader } from "../components/PageHeader";
@@ -94,13 +95,18 @@ export default function TransactionsPage() {
           amount: parseFloat(formData.amount) * (formData.type === "Gold Purchase" || formData.type === "Op. Expense" || formData.type === "Logistics" || formData.type === "Processing" || formData.type === "Cash Outflow" ? -1 : 1)
         })
       });
+      
       if (res.ok) {
         setCreating(false);
         fetchTransactions();
         setFormData({ ...formData, amount: "", party: "", description: "" });
+        alert("Transaction recorded successfully!");
+      } else {
+        const errorData = await res.json();
+        alert(`Server Error (${res.status}): ${errorData.error || 'Unknown error'}`);
       }
     } catch (err) {
-      alert("Failed to save transaction");
+      alert("Network Error: Could not reach the server. Check your internet or domain connection.");
     }
   };
 
