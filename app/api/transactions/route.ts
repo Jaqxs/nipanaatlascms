@@ -38,9 +38,9 @@ export async function POST(request: Request) {
     const newTx = await db.get('SELECT * FROM transactions WHERE id = ?', id);
     console.log(`[API] Transaction saved:`, newTx.ref);
     return NextResponse.json(newTx);
-  } catch (error) {
+  } catch (error: any) {
     console.error(`[API] Create transaction FAILED:`, error);
-    return NextResponse.json({ error: 'Failed to create transaction' }, { status: 500 });
+    return NextResponse.json({ error: error.message || 'Failed to create transaction' }, { status: 500 });
   }
 }
 

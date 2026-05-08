@@ -25,8 +25,8 @@ export async function POST(request: Request) {
     );
 
     return NextResponse.json({ success: true, id });
-  } catch (error) {
-    return NextResponse.json({ error: 'Failed to create site' }, { status: 500 });
+  } catch (error: any) {
+    return NextResponse.json({ error: error.message || 'Failed to create site' }, { status: 500 });
   }
 }
 
