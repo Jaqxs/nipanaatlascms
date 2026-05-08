@@ -11,6 +11,7 @@ const NAV = [
   { href: "/invoices", label: "Invoices", icon: "ri-file-paper-2-line", admin: false },
   { href: "/quotations", label: "Quotations", icon: "ri-price-tag-3-line", admin: false },
   { href: "/contacts", label: "Contacts", icon: "ri-contacts-book-line", admin: false },
+  { href: "/sites", label: "Sites", icon: "ri-map-pin-line", admin: false },
   { href: "/cash-flow", label: "Cash Flow", icon: "ri-water-flash-line", admin: true },
   { href: "/reports", label: "Reports", icon: "ri-stack-line", admin: true },
   { href: "/ai-insights", label: "AI Insights", icon: "ri-sparkling-2-line", admin: true },
