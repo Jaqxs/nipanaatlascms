@@ -9,7 +9,7 @@ services:
     ports:
       - "3000:3000"
     volumes:
-      - ./gbms.db:/app/gbms.db
+      - ./data:/app/data
     environment:
       - NODE_ENV=production
     restart: always

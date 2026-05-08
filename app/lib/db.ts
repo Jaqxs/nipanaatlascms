@@ -4,12 +4,20 @@ import path from 'path';
 import { RECENT_TX, PENDING_INVOICES, INVENTORY_BATCHES, CUSTOMERS, SUPPLIERS } from './mockData';
 import crypto from 'crypto';
 
+import fs from 'fs';
+
 let db: Database | null = null;
 
 export async function getDb() {
   if (db) return db;
 
-  const dbPath = path.join(process.cwd(), 'gbms.db');
+  // For production Docker environments, we prefer a dedicated 'data' folder
+  const dataDir = path.join(process.cwd(), 'data');
+  if (!fs.existsSync(dataDir)) {
+    fs.mkdirSync(dataDir, { recursive: true });
+  }
+
+  const dbPath = process.env.DATABASE_URL || path.join(dataDir, 'gbms.db');
   
   db = await open({
     filename: dbPath,
