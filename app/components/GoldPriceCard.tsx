@@ -3,15 +3,29 @@ import { GoldPriceSparkline } from "./Charts";
 import { GOLD_PRICE } from "../lib/mockData";
 
 interface Props {
+  current?: number;
+  change?: string | number;
+  asOf?: string;
+  history?: number[];
   isAdmin?: boolean;
   onUpdate?: () => void;
 }
 
-export function GoldPriceCard({ isAdmin, onUpdate }: Props) {
-  const { current, delta, source, asOf, history } = GOLD_PRICE;
+export function GoldPriceCard({ 
+  current: propCurrent, 
+  asOf: propAsOf, 
+  history: propHistory, 
+  isAdmin, 
+  onUpdate 
+}: Props) {
+  const current = propCurrent ?? GOLD_PRICE.current;
+  const asOf = propAsOf ?? GOLD_PRICE.asOf;
+  const history = propHistory && propHistory.length > 0 ? propHistory : (GOLD_PRICE.history.length > 0 ? GOLD_PRICE.history : [0]);
+  const { delta, source } = GOLD_PRICE;
+  
   const high = Math.max(...history);
   const low = Math.min(...history);
-  const dayChange = ((delta / (current - delta)) * 100);
+  const dayChange = current !== 0 ? ((delta / (current - delta)) * 100) : 0;
 
   return (
     <div className="surface p-5 flex flex-col" style={{ background: "#fdf6e4" }}>
