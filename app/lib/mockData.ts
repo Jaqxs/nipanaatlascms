@@ -21,15 +21,15 @@ export const KPIS = {
   activeQuotations: 0,
 };
 
-export const SALES_VS_EXPENSES = [];
-export const PROFIT_TREND = [];
-export const STOCK_BY_PURITY = [];
-export const RECENT_TX = [];
-export const PENDING_INVOICES = [];
-export const ALERTS = [];
-export const INVENTORY_BATCHES = [];
-export const QUOTATIONS = [];
-export const CASH_FLOW = [];
+export const SALES_VS_EXPENSES: any[] = [];
+export const PROFIT_TREND: any[] = [];
+export const STOCK_BY_PURITY: any[] = [];
+export const RECENT_TX: any[] = [];
+export const PENDING_INVOICES: any[] = [];
+export const ALERTS: any[] = [];
+export const INVENTORY_BATCHES: any[] = [];
+export const QUOTATIONS: any[] = [];
+export const CASH_FLOW: any[] = [];
 
 export const GOLD_PRICE = {
   current: 0,
@@ -60,4 +60,11 @@ export interface Supplier {
 }
 export const SUPPLIERS: Supplier[] = [];
 
-export const ANOMALIES = [];
+export interface Anomaly {
+  id: string;
+  txn: string;
+  reason: string;
+  severity: string;
+  time: string;
+}
+export const ANOMALIES: Anomaly[] = [];
