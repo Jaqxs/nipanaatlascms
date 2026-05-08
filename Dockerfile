@@ -39,7 +39,6 @@ COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
 COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
 RUN mkdir data
 RUN chown nextjs:nodejs data
-COPY --from=builder --chown=nextjs:nodejs /app/gbms.db ./data/gbms.db
 
 USER nextjs
 
