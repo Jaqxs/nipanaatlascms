@@ -8,17 +8,8 @@ let db: Database | null = null;
 export async function getDb() {
   if (db) return db;
 
-  // Use absolute path for Docker stability
-  const dbPath = '/app/data/gbms.db';
-  const dataDir = '/app/data';
-  
-  if (!fs.existsSync(dataDir)) {
-    try {
-      fs.mkdirSync(dataDir, { recursive: true });
-    } catch (e) {
-      console.error("[DB] Path creation error:", e);
-    }
-  }
+  const dbPath = ':memory:';
+  console.log(`[DB] MEMORY MODE ENABLED`);
 
   try {
     const sqlite3Verbose = sqlite3.verbose();
