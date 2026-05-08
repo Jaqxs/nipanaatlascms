@@ -27,3 +27,8 @@ yarn-error.log*
 .idea/
 .vscode/
 *.swp
+
+# Database
+*.db
+*.sqlite
+gbms.db

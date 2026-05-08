@@ -38,10 +38,80 @@ export default function CashFlowPage() {
   const [exportOpen, setExportOpen] = useState(false);
   const { format } = useCurrency();
   const { inRangeFromShortDate, label: rangeLabel } = useDateRange();
+  const [transactions, setTransactions] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  const flows = FLOWS
-    .filter((f) => inRangeFromShortDate(f.date))
-    .filter((f) => filter === "all" || f.type === filter);
+  useEffect(() => {
+    fetchTransactions();
+  }, []);
+
+  const fetchTransactions = async () => {
+    setLoading(true);
+    try {
+      const res = await fetch('/api/transactions');
+      const data = await res.json();
+      setTransactions(Array.isArray(data) ? data : []);
+    } catch (err) {
+      console.error("Failed to fetch transactions:", err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const [formData, setFormData] = useState({
+    date: new Date().toISOString().split('T')[0],
+    amount: "",
+    category: "Gold Sale Proceeds",
+    currency: "USD",
+    party: "",
+    description: ""
+  });
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    try {
+      const amount = parseFloat(formData.amount);
+      const finalAmount = adding === "out" ? -amount : amount;
+      const res = await fetch('/api/transactions', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          ...formData,
+          amount: finalAmount,
+          type: formData.category
+        })
+      });
+      if (res.ok) {
+        setAdding(null);
+        fetchTransactions();
+        setFormData({ ...formData, amount: "", party: "", description: "" });
+      }
+    } catch (err) {
+      alert("Failed to save entry");
+    }
+  };
+
+  const flows: Flow[] = transactions.map(t => ({
+    date: t.date,
+    type: t.amount >= 0 ? "in" : "out",
+    category: t.type,
+    desc: t.party + (t.ref ? ` · ${t.ref}` : ''),
+    amount: Math.abs(t.amount)
+  })).filter((f) => inRangeFromShortDate(f.date))
+     .filter((f) => filter === "all" || f.type === filter);
+
+  const stats = transactions.reduce((acc, t) => {
+    if (t.amount > 0) acc.inflow += t.amount;
+    else acc.outflow += Math.abs(t.amount);
+    return acc;
+  }, { inflow: 0, outflow: 0 });
+
+  const dynamicSummary = [
+    { label: "Gross Inflow", value: stats.inflow, tone: "sage" },
+    { label: "Total Outflow", value: stats.outflow, tone: "terra" },
+    { label: "Net Cash Flow", value: stats.inflow - stats.outflow, tone: "ink" },
+    { label: "Burn Rate", value: stats.outflow / 4, tone: "terra", display: format(stats.outflow / 4) + " /wk" },
+  ];
 
   return (
     <div>
@@ -64,7 +134,7 @@ export default function CashFlowPage() {
       />
 
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
-        {SUMMARY.map((s) => (
+        {dynamicSummary.map((s) => (
           <div key={s.label} className="surface p-4">
             <div className="text-[11px] uppercase tracking-[0.14em] text-ink-muted">{s.label}</div>
             <div className={`font-numeric text-2xl mt-1 ${
@@ -136,20 +206,20 @@ export default function CashFlowPage() {
       <Modal open={!!adding} onClose={() => setAdding(null)}
         eyebrow={`Cash ${adding === "in" ? "inflow" : "outflow"}`}
         title={`Record ${adding === "in" ? "inflow" : "outflow"}`}
-        footer={<><button className="btn-secondary" onClick={() => setAdding(null)}>Cancel</button><button className="btn-primary" onClick={() => setAdding(null)}>Save</button></>}>
+        footer={<><button className="btn-secondary" onClick={() => setAdding(null)}>Cancel</button><button className="btn-primary" onClick={handleSubmit}>Save entry</button></>}>
         <div className="grid grid-cols-2 gap-4">
-          <Field label="Date"><input type="date" className="input" defaultValue="2026-05-04" /></Field>
-          <Field label="Amount"><input className="input" placeholder="0.00" /></Field>
+          <Field label="Date"><input type="date" className="input" value={formData.date} onChange={e => setFormData({...formData, date: e.target.value})} /></Field>
+          <Field label="Amount"><input className="input" placeholder="0.00" value={formData.amount} onChange={e => setFormData({...formData, amount: e.target.value})} /></Field>
           <Field label="Category">
-            <select className="input">
+            <select className="input" value={formData.category} onChange={e => setFormData({...formData, category: e.target.value})}>
               {adding === "in"
-                ? ["Gold Sale Proceeds", "Investor Capital", "Loan Receipt", "Other Income"].map((c) => <option key={c}>{c}</option>)
-                : ["Staff Salaries", "Operational", "Processing", "Logistics & Security", "Loan Repayment", "Tax", "Capital Expenditure"].map((c) => <option key={c}>{c}</option>)}
+                ? ["Gold Sale Proceeds", "Investor Capital", "Loan Receipt", "Other Income"].map((c) => <option key={c} value={c}>{c}</option>)
+                : ["Staff Salaries", "Operational", "Processing", "Logistics & Security", "Loan Repayment", "Tax", "Capital Expenditure"].map((c) => <option key={c} value={c}>{c}</option>)}
             </select>
           </Field>
-          <Field label="Currency"><select className="input"><option>USD</option><option>TZS</option></select></Field>
-          <Field label={adding === "in" ? "Source" : "Payee"} full><input className="input" /></Field>
-          <Field label="Description / reference" full><textarea rows={2} className="input" /></Field>
+          <Field label="Currency"><select className="input" value={formData.currency} onChange={e => setFormData({...formData, currency: e.target.value})}><option>USD</option><option>TZS</option></select></Field>
+          <Field label={adding === "in" ? "Source" : "Payee"} full><input className="input" value={formData.party} onChange={e => setFormData({...formData, party: e.target.value})} /></Field>
+          <Field label="Description / reference" full><textarea rows={2} className="input" value={formData.description} onChange={e => setFormData({...formData, description: e.target.value})} /></Field>
         </div>
       </Modal>
     </div>

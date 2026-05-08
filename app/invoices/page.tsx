@@ -1,5 +1,6 @@
 "use client";
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useSearchParams } from "next/navigation";
 import { PageHeader } from "../components/PageHeader";
 import { Badge, statusToTone } from "../components/Badge";
 import { Modal } from "../components/Modal";
@@ -15,47 +16,56 @@ interface Invoice {
   amount: number; status: string;
 }
 
-const INVOICES: Invoice[] = [
-  { no: "INV-2026-000482", customer: "Mwanza Refinery Ltd.", issued: "May 04", due: "May 11", amount: 18_400, status: "Sent" },
-  { no: "INV-2026-000481", customer: "Patel Jewellers", issued: "May 03", due: "May 12", amount: 9_650, status: "Paid" },
-  { no: "INV-2026-000480", customer: "Sukuma Gold Co.", issued: "May 03", due: "May 10", amount: 4_840, status: "Sent" },
-  { no: "INV-2026-000479", customer: "Lake Zone Traders", issued: "May 02", due: "May 09", amount: 6_200, status: "Overdue" },
-  { no: "INV-2026-000478", customer: "Coastal Buyers", issued: "May 02", due: "May 16", amount: 11_300, status: "Pending" },
-  { no: "INV-2026-000477", customer: "Bulyanhulu Buyers", issued: "May 01", due: "May 08", amount: 3_210, status: "Overdue" },
-  { no: "INV-2026-000476", customer: "Mara Refining", issued: "May 01", due: "May 14", amount: 7_800, status: "Draft" },
-  { no: "INV-2026-000475", customer: "Geita Cooperative", issued: "Apr 30", due: "May 14", amount: 22_800, status: "Paid" },
-  { no: "INV-2026-000474", customer: "Patel Jewellers", issued: "Apr 30", due: "May 14", amount: 5_420, status: "Sent" },
-  { no: "INV-2026-000473", customer: "Mwanza Refinery Ltd.", issued: "Apr 29", due: "May 13", amount: 14_900, status: "Paid" },
-  { no: "INV-2026-000472", customer: "Northern Crafts", issued: "Apr 29", due: "May 13", amount: 2_840, status: "Sent" },
-  { no: "INV-2026-000471", customer: "Lake Zone Traders", issued: "Apr 28", due: "May 05", amount: 8_120, status: "Overdue" },
-  { no: "INV-2026-000470", customer: "Sukuma Gold Co.", issued: "Apr 27", due: "May 11", amount: 3_980, status: "Paid" },
-  { no: "INV-2026-000469", customer: "Coastal Buyers", issued: "Apr 26", due: "May 10", amount: 6_700, status: "Paid" },
-  { no: "INV-2026-000468", customer: "Bulyanhulu Buyers", issued: "Apr 25", due: "May 09", amount: 4_300, status: "Pending" },
-  { no: "INV-2026-000467", customer: "Patel Jewellers", issued: "Apr 25", due: "May 09", amount: 12_600, status: "Paid" },
-  { no: "INV-2026-000466", customer: "Mara Refining", issued: "Apr 24", due: "May 08", amount: 8_900, status: "Paid" },
-  { no: "INV-2026-000465", customer: "Northern Crafts", issued: "Apr 23", due: "May 07", amount: 1_540, status: "Sent" },
-];
+// Initial data is now handled by the backend API
+const INITIAL_INVOICES: Invoice[] = [];
 
 export default function InvoicesPage() {
+  const [invoices, setInvoices] = useState<Invoice[]>([]);
+  const [loading, setLoading] = useState(true);
   const [tab, setTab] = useState("All");
   const [search, setSearch] = useState("");
-  const [preview, setPreview] = useState<Invoice | null>(null);
   const [creating, setCreating] = useState(false);
   const [reminding, setReminding] = useState(false);
   const [exportOpen, setExportOpen] = useState(false);
+  const [preview, setPreview] = useState<Invoice | null>(null);
   const { format } = useCurrency();
   const { inRangeFromShortDate, label: rangeLabel } = useDateRange();
 
-  const filtered = INVOICES
-    .filter((i) => inRangeFromShortDate(i.issued))
+  const searchParams = useSearchParams();
+
+  useEffect(() => {
+    fetchInvoices();
+    if (searchParams.get("action") === "new") {
+      setCreating(true);
+    }
+  }, [searchParams]);
+
+  const fetchInvoices = async () => {
+    setLoading(true);
+    try {
+      const res = await fetch('/api/invoices');
+      const data = await res.json();
+      setInvoices(Array.isArray(data) ? data : []);
+    } catch (err) {
+      console.error("Failed to fetch invoices:", err);
+      setInvoices([]);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const invoiceArray = Array.isArray(invoices) ? invoices : [];
+
+  const filtered = invoiceArray
+    .filter((i) => inRangeFromShortDate(i.issued || i.due))
     .filter((i) => tab === "All" || i.status === tab)
     .filter((i) => !search ||
       i.no.toLowerCase().includes(search.toLowerCase()) ||
       i.customer.toLowerCase().includes(search.toLowerCase()));
 
-  const totalReceivable = INVOICES.filter((i) => ["Sent", "Pending", "Overdue"].includes(i.status))
+  const totalReceivable = invoiceArray.filter((i) => ["Sent", "Pending", "Overdue"].includes(i.status))
     .reduce((a, b) => a + b.amount, 0);
-  const overdue = INVOICES.filter((i) => i.status === "Overdue").reduce((a, b) => a + b.amount, 0);
+  const overdueValue = invoiceArray.filter((i) => i.status === "Overdue").reduce((a, b) => a + b.amount, 0);
 
   return (
     <div>
@@ -85,8 +95,8 @@ export default function InvoicesPage() {
         </div>
         <div className="surface p-5">
           <div className="text-[11px] uppercase tracking-[0.14em] text-ink-muted">Overdue</div>
-          <div className="font-numeric text-[30px] text-rose-700 mt-2">{format(overdue)}</div>
-          <div className="text-xs text-ink-muted mt-2">2 invoices · longest 14 days</div>
+          <div className="font-numeric text-[30px] text-rose-700 mt-2">{format(overdueValue)}</div>
+          <div className="text-xs text-ink-muted mt-2">{invoiceArray.filter(i => i.status === "Overdue").length} invoices · longest 14 days</div>
         </div>
         <div className="surface p-5">
           <div className="text-[11px] uppercase tracking-[0.14em] text-ink-muted">Days Sales Outstanding</div>
@@ -131,7 +141,9 @@ export default function InvoicesPage() {
             </tr>
           </thead>
           <tbody>
-            {filtered.length === 0 ? (
+            {loading ? (
+              <tr><td colSpan={7} className="text-center text-ink-faint py-12">Loading invoices...</td></tr>
+            ) : filtered.length === 0 ? (
               <tr><td colSpan={7} className="text-center text-ink-faint py-12">No invoices match your filters.</td></tr>
             ) : filtered.map((i) => (
               <tr key={i.no} className="clickable" onClick={() => setPreview(i)}>
@@ -176,8 +188,8 @@ export default function InvoicesPage() {
       {/* New invoice modal */}
       <Modal open={creating} onClose={() => setCreating(false)} size="lg"
         eyebrow="Section 7 · New invoice" title="Create invoice"
-        footer={<><button className="btn-secondary" onClick={() => setCreating(false)}>Cancel</button><button className="btn-primary" onClick={() => setCreating(false)}>Save as draft</button></>}>
-        <NewInvoiceForm />
+        footer={<><button className="btn-secondary" onClick={() => setCreating(false)}>Cancel</button><button className="btn-primary" onClick={() => (document.getElementById('new-invoice-form') as any)?.requestSubmit()}>Create invoice</button></>}>
+        <NewInvoiceForm onSuccess={() => { setCreating(false); fetchInvoices(); }} />
       </Modal>
 
       <ExportModal open={exportOpen} onClose={() => setExportOpen(false)} resource="invoices" rowCount={filtered.length} />
@@ -188,7 +200,7 @@ export default function InvoicesPage() {
         footer={<><button className="btn-secondary" onClick={() => setReminding(false)}>Cancel</button><button className="btn-primary" onClick={() => setReminding(false)}>Send to 2 customers</button></>}>
         <p className="text-sm text-ink-muted mb-4">A polite reminder will be emailed to customers with overdue invoices.</p>
         <ul className="space-y-2 text-sm">
-          {INVOICES.filter((i) => i.status === "Overdue").map((i) => (
+          {invoices.filter((i) => i.status === "Overdue").map((i) => (
             <li key={i.no} className="flex items-center gap-3 surface-flat p-3">
               <i className="ri-mail-line text-gold-600" />
               <span className="text-ink">{i.customer}</span>
@@ -208,9 +220,11 @@ function InvoicePreview({ invoice }: { invoice: Invoice }) {
       <div className="flex items-start justify-between mb-6">
         <div>
           <div className="flex items-center gap-3 mb-3">
-            <div className="w-12 h-12 rounded-lg flex items-center justify-center" style={{ background: "#b8893d" }}>
-              <i className="ri-coin-line text-white text-2xl" />
-            </div>
+            <img
+              src="/asset/logo.jpeg"
+              alt="NIPANA Logo"
+              className="w-12 h-12 object-contain rounded-lg"
+            />
             <div>
               <div className="font-display text-xl text-ink">NIPANA Atlas</div>
               <div className="text-xs text-ink-muted">Mwanza, Tanzania · TIN 109-204-883</div>
@@ -270,30 +284,61 @@ function InvoicePreview({ invoice }: { invoice: Invoice }) {
   );
 }
 
-function NewInvoiceForm() {
+function NewInvoiceForm({ onSuccess }: { onSuccess: () => void }) {
+  const [customer, setCustomer] = useState("");
+  const [due, setDue] = useState("2026-05-11");
   const [lines, setLines] = useState([{ desc: "", weight: "", karat: "24", price: "" }]);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const total = lines.reduce((acc, line) => acc + (parseFloat(line.weight) || 0) * (parseFloat(line.price) || 0), 0);
+    try {
+      const res = await fetch('/api/invoices', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          customer,
+          due,
+          amount: total,
+          status: 'Sent'
+        })
+      });
+      if (res.ok) onSuccess();
+    } catch (err) {
+      alert("Failed to create invoice");
+    }
+  };
+
   return (
-    <div className="space-y-5">
+    <form id="new-invoice-form" onSubmit={handleSubmit} className="space-y-5">
       <div className="grid grid-cols-2 gap-4">
-        <Field label="Customer"><input className="input" placeholder="Select or create customer" /></Field>
+        <Field label="Customer"><input className="input" placeholder="Select or create customer" value={customer} onChange={e => setCustomer(e.target.value)} required /></Field>
         <Field label="Customer ID"><input className="input" placeholder="Auto-generated" disabled /></Field>
         <Field label="Issue date"><input type="date" className="input" defaultValue="2026-05-04" /></Field>
-        <Field label="Due date"><input type="date" className="input" defaultValue="2026-05-11" /></Field>
+        <Field label="Due date"><input type="date" className="input" value={due} onChange={e => setDue(e.target.value)} /></Field>
       </div>
 
       <div>
         <div className="flex items-center justify-between mb-2">
           <span className="text-[11px] uppercase tracking-[0.14em] text-ink-muted">Line items</span>
-          <button onClick={() => setLines([...lines, { desc: "", weight: "", karat: "24", price: "" }])} className="text-xs text-gold-700 hover:underline">+ Add line</button>
+          <button type="button" onClick={() => setLines([...lines, { desc: "", weight: "", karat: "24", price: "" }])} className="text-xs text-gold-700 hover:underline">+ Add line</button>
         </div>
         <div className="space-y-2">
-          {lines.map((_, idx) => (
+          {lines.map((line, idx) => (
             <div key={idx} className="grid grid-cols-12 gap-2">
-              <input className="input col-span-5" placeholder="Description" />
-              <input className="input col-span-2" placeholder="Weight (g)" />
-              <select className="input col-span-2"><option>24K</option><option>22K</option><option>18K</option></select>
-              <input className="input col-span-2" placeholder="Unit price" />
-              <button onClick={() => setLines(lines.filter((_, i) => i !== idx))} className="btn-ghost col-span-1 justify-center">
+              <input className="input col-span-5" placeholder="Description" value={line.desc} onChange={e => {
+                const nl = [...lines]; nl[idx].desc = e.target.value; setLines(nl);
+              }} />
+              <input className="input col-span-2" placeholder="Weight (g)" value={line.weight} onChange={e => {
+                const nl = [...lines]; nl[idx].weight = e.target.value; setLines(nl);
+              }} />
+              <select className="input col-span-2" value={line.karat} onChange={e => {
+                const nl = [...lines]; nl[idx].karat = e.target.value; setLines(nl);
+              }}><option>24K</option><option>22K</option><option>18K</option></select>
+              <input className="input col-span-2" placeholder="Unit price" value={line.price} onChange={e => {
+                const nl = [...lines]; nl[idx].price = e.target.value; setLines(nl);
+              }} />
+              <button type="button" onClick={() => setLines(lines.filter((_, i) => i !== idx))} className="btn-ghost col-span-1 justify-center">
                 <i className="ri-delete-bin-line" />
               </button>
             </div>
@@ -302,7 +347,7 @@ function NewInvoiceForm() {
       </div>
 
       <Field label="Notes / payment terms"><textarea rows={2} className="input" /></Field>
-    </div>
+    </form>
   );
 }
 

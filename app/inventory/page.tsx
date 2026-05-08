@@ -1,5 +1,6 @@
 "use client";
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useSearchParams } from "next/navigation";
 import { PageHeader, FilterChip } from "../components/PageHeader";
 import { Badge, statusToTone } from "../components/Badge";
 import { Modal } from "../components/Modal";
@@ -18,8 +19,7 @@ const MOVEMENTS = [
   { t: "May 02 14:33", b: "BATCH-20260501-0040", m: "Adjustment", before: 615.0, d: -2.8, after: 612.2, by: "Admin · J. Assey", l: "Reconciliation" },
 ];
 
-export default function InventoryPage() {
-  const [tab, setTab] = useState<"batches" | "movements">("batches");
+export default function InventoryPage() {  const [tab, setTab] = useState<"batches" | "movements">("batches");
   const [adding, setAdding] = useState(false);
   const [detail, setDetail] = useState<Batch | null>(null);
   const [purity, setPurity] = useState("All");
@@ -28,16 +28,77 @@ export default function InventoryPage() {
   const [exportOpen, setExportOpen] = useState(false);
   const { format, formatUSD } = useCurrency();
 
-  const totalWeight = INVENTORY_BATCHES.reduce((a, b) => a + b.weight, 0);
-  const fineWeight = INVENTORY_BATCHES.reduce((a, b) => a + b.fine, 0);
-  const totalValue = INVENTORY_BATCHES.reduce((a, b) => a + b.value, 0);
+  const [inventory, setInventory] = useState<Batch[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [formData, setFormData] = useState({
+    weight: "",
+    karat: "24",
+    location: "Vault A",
+    source: "",
+    value: ""
+  });
+
+  const searchParams = useSearchParams();
+
+  useEffect(() => {
+    fetchInventory();
+    if (searchParams.get("action") === "new") {
+      setAdding(true);
+    }
+  }, [searchParams]);
+
+  const fetchInventory = async () => {
+    setLoading(true);
+    try {
+      const res = await fetch('/api/inventory');
+      const data = await res.json();
+      setInventory(Array.isArray(data) ? data : []);
+    } catch (err) {
+      console.error("Failed to fetch inventory:", err);
+      setInventory([]);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    try {
+      const weight = parseFloat(formData.weight);
+      const karat = formData.karat === "Raw" ? 0 : parseInt(formData.karat);
+      const fine = karat ? (weight * karat) / 24 : 0;
+      const res = await fetch('/api/inventory', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          ...formData,
+          weight,
+          karat,
+          fine,
+          value: parseFloat(formData.value) || 0
+        })
+      });
+      if (res.ok) {
+        setAdding(false);
+        fetchInventory();
+        setFormData({ ...formData, weight: "", value: "", source: "" });
+      }
+    } catch (err) {
+      alert("Failed to save batch");
+    }
+  };
+
+  const inventoryArray = Array.isArray(inventory) ? inventory : [];
+  const totalWeight = inventoryArray.reduce((a, b) => a + (b.weight || 0), 0);
+  const fineWeight = inventoryArray.reduce((a, b) => a + (b.fine || 0), 0);
+  const totalValue = inventoryArray.reduce((a, b) => a + (b.value || 0), 0);
 
   const PURITIES = ["All", "24K", "22K", "18K", "Raw"];
   const LOCATIONS = ["All", "Vault A", "Vault B", "Processing", "In Transit"];
 
-  const batches = INVENTORY_BATCHES
+  const batches = inventoryArray
     .filter((b) => purity === "All" || (purity === "Raw" ? !b.karat : `${b.karat}K` === purity))
-    .filter((b) => location === "All" || b.location === location);
+    .filter((b) => location === "All" || b.location === location);;
 
   return (
     <div>
@@ -60,7 +121,7 @@ export default function InventoryPage() {
         <div className="surface p-5">
           <div className="text-[11px] uppercase tracking-[0.14em] text-ink-muted">Total stock weight</div>
           <div className="font-numeric text-[30px] text-ink mt-2">{fmtWeight(totalWeight)}</div>
-          <div className="text-xs text-ink-muted mt-2">{INVENTORY_BATCHES.length} active batches</div>
+          <div className="text-xs text-ink-muted mt-2">{inventory.length} active batches</div>
         </div>
         <div className="surface p-5">
           <div className="text-[11px] uppercase tracking-[0.14em] text-ink-muted">Total fine weight</div>
@@ -111,7 +172,9 @@ export default function InventoryPage() {
               <tr><th>Batch</th><th>Weight</th><th>Karat</th><th>Fine wt.</th><th>Source</th><th>Location</th><th>Status</th><th className="text-right">Value</th><th /></tr>
             </thead>
             <tbody>
-              {batches.length === 0 ? (
+              {loading ? (
+                <tr><td colSpan={9} className="text-center text-ink-faint py-12">Loading inventory...</td></tr>
+              ) : batches.length === 0 ? (
                 <tr><td colSpan={9} className="text-center text-ink-faint py-12">No batches match these filters.</td></tr>
               ) : batches.map((b) => (
                 <tr key={b.batch} className="clickable" onClick={() => setDetail(b)}>
@@ -176,30 +239,30 @@ export default function InventoryPage() {
       {/* Add batch modal */}
       <Modal open={adding} onClose={() => setAdding(false)}
         eyebrow="Inventory" title="Add new batch"
-        footer={<><button className="btn-secondary" onClick={() => setAdding(false)}>Cancel</button><button className="btn-primary" onClick={() => setAdding(false)}>Save batch</button></>}>
-        <div className="grid grid-cols-2 gap-4">
-          <Field label="Batch ID"><input className="input" placeholder="Auto-generated BATCH-20260504-NNNN" disabled /></Field>
-          <Field label="Entry date"><input type="date" className="input" defaultValue="2026-05-04" /></Field>
-          <Field label="Weight (grams)"><input className="input" placeholder="0.000" /></Field>
+        footer={<><button className="btn-secondary" onClick={() => setAdding(false)}>Cancel</button><button className="btn-primary" onClick={handleSubmit}>Save batch</button></>}>
+        <form onSubmit={handleSubmit} className="grid grid-cols-2 gap-4">
+          <Field label="Batch ID"><input className="input" placeholder="Auto-generated" disabled /></Field>
+          <Field label="Entry date"><input type="date" className="input" defaultValue={new Date().toISOString().split('T')[0]} /></Field>
+          <Field label="Weight (grams)"><input className="input" placeholder="0.000" value={formData.weight} onChange={e => setFormData({...formData, weight: e.target.value})} required /></Field>
           <Field label="Purity">
-            <select className="input">
+            <select className="input" value={formData.karat} onChange={e => setFormData({...formData, karat: e.target.value})}>
               <option>24K</option><option>22K</option><option>21K</option><option>18K</option>
               <option>14K</option><option>9K</option><option>Raw</option>
             </select>
           </Field>
           <Field label="Location">
-            <select className="input">
+            <select className="input" value={formData.location} onChange={e => setFormData({...formData, location: e.target.value})}>
               <option>Vault A</option><option>Vault B</option><option>Processing</option><option>In Transit</option>
             </select>
           </Field>
-          <Field label="Acquisition cost"><input className="input" placeholder="0.00" /></Field>
+          <Field label="Acquisition cost"><input className="input" placeholder="0.00" value={formData.value} onChange={e => setFormData({...formData, value: e.target.value})} /></Field>
           <Field label="Source — purchase transaction" full>
-            <input className="input" placeholder="TX-NNNNNN reference" />
+            <input className="input" placeholder="TX-NNNNNN reference" value={formData.source} onChange={e => setFormData({...formData, source: e.target.value})} required />
           </Field>
           <Field label="Notes / quality" full>
             <textarea rows={2} className="input" placeholder="Optional assay notes" />
           </Field>
-        </div>
+        </form>
       </Modal>
 
       {/* Batch detail — redesigned */}

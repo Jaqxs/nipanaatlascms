@@ -1,0 +1,15 @@
+version: '3.8'
+
+services:
+  gbms-app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: gbms_production
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./gbms.db:/app/gbms.db
+    environment:
+      - NODE_ENV=production
+    restart: always

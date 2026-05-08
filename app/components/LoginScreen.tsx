@@ -47,12 +47,12 @@ export function LoginScreen() {
         </div>
         <div className="relative">
           <div className="flex items-center gap-3">
-            <div
-              className="w-11 h-11 rounded-lg flex items-center justify-center bg-white/15"
+            <img
+              src="/asset/logo.jpeg"
+              alt="NIPANA Logo"
+              className="w-11 h-11 object-contain bg-white/15 rounded-lg p-1"
               style={{ boxShadow: "inset 0 0 0 1px rgba(255,255,255,0.25)" }}
-            >
-              <i className="ri-coin-line text-white text-2xl" />
-            </div>
+            />
             <div>
               <div className="font-display text-lg leading-tight">NIPANA Atlas</div>
               <div className="text-[10px] tracking-[0.2em] uppercase text-white/70">GBMS · Mwanza</div>
@@ -79,12 +79,11 @@ export function LoginScreen() {
         <div className="w-full max-w-[420px]">
           {/* Mobile logo */}
           <div className="lg:hidden flex items-center gap-3 mb-10">
-            <div
-              className="w-10 h-10 rounded-lg flex items-center justify-center"
-              style={{ background: "#b8893d" }}
-            >
-              <i className="ri-coin-line text-white text-xl" />
-            </div>
+            <img
+              src="/asset/logo.jpeg"
+              alt="NIPANA Logo"
+              className="w-10 h-10 object-contain rounded-lg"
+            />
             <div>
               <div className="font-display text-base text-ink">NIPANA Atlas</div>
               <div className="text-[10px] tracking-[0.18em] uppercase text-ink-muted">GBMS</div>

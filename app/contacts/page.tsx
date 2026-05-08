@@ -1,5 +1,5 @@
 "use client";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { PageHeader } from "../components/PageHeader";
 import { Badge } from "../components/Badge";
 import { Modal } from "../components/Modal";
@@ -11,6 +11,16 @@ import { useCurrency } from "../lib/currency-context";
 type Tab = "customers" | "suppliers";
 
 export default function ContactsPage() {
+  const [contacts, setContacts] = useState<(Customer | Supplier)[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [formData, setFormData] = useState({
+    name: "",
+    email: "",
+    phone: "",
+    location: "",
+    status: "active"
+  });
+
   const [tab, setTab] = useState<Tab>("customers");
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("All");
@@ -20,24 +30,65 @@ export default function ContactsPage() {
   const [exportOpen, setExportOpen] = useState(false);
   const { format } = useCurrency();
 
-  const customers = CUSTOMERS
+  useEffect(() => {
+    fetchContacts();
+  }, []);
+
+  const fetchContacts = async () => {
+    setLoading(true);
+    try {
+      const res = await fetch('/api/contacts');
+      const data = await res.json();
+      setContacts(Array.isArray(data) ? data : []);
+    } catch (err) {
+      console.error("Failed to fetch contacts:", err);
+      setContacts([]);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    try {
+      const res = await fetch('/api/contacts', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          ...formData,
+          type: tab === "customers" ? "customer" : "supplier"
+        })
+      });
+      if (res.ok) {
+        setCreating(false);
+        fetchContacts();
+        setFormData({ name: "", email: "", phone: "", location: "", status: "active" });
+      }
+    } catch (err) {
+      alert("Failed to register contact");
+    }
+  };
+
+  const contactsArray = Array.isArray(contacts) ? contacts : [];
+
+  const customers = (contactsArray.filter(c => (c as any).type === 'customer') as Customer[])
     .filter((c) => statusFilter === "All" || c.status === statusFilter.toLowerCase())
     .filter((c) => !search ||
       c.name.toLowerCase().includes(search.toLowerCase()) ||
       c.id.toLowerCase().includes(search.toLowerCase()) ||
       c.email.toLowerCase().includes(search.toLowerCase()));
 
-  const suppliers = SUPPLIERS
+  const suppliers = (contactsArray.filter(c => (c as any).type === 'supplier') as Supplier[])
     .filter((s) => statusFilter === "All" || s.status === statusFilter.toLowerCase())
     .filter((s) => !search ||
       s.name.toLowerCase().includes(search.toLowerCase()) ||
       s.id.toLowerCase().includes(search.toLowerCase()) ||
       s.email.toLowerCase().includes(search.toLowerCase()));
 
-  const totalReceivable = CUSTOMERS.reduce((a, b) => a + b.outstanding, 0);
-  const totalPayable = SUPPLIERS.reduce((a, b) => a + b.outstanding, 0);
-  const totalCustomerSpend = CUSTOMERS.reduce((a, b) => a + b.totalPurchases, 0);
-  const totalSupplied_g = SUPPLIERS.reduce((a, b) => a + b.totalSupplied_g, 0);
+  const totalReceivable = customers.reduce((a, b) => a + b.outstanding, 0);
+  const totalPayable = suppliers.reduce((a, b) => a + b.outstanding, 0);
+  const totalCustomerSpend = customers.reduce((a, b) => a + b.totalPurchases, 0);
+  const totalSupplied_g = suppliers.reduce((a, b) => a + (b as any).totalSupplied_g || 0, 0);
 
   const filteredCount = tab === "customers" ? customers.length : suppliers.length;
   const resourceLabel = tab === "customers" ? "customers" : "suppliers";
@@ -61,8 +112,8 @@ export default function ContactsPage() {
 
       {/* Top metrics */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-        <Stat label="Customers" value={CUSTOMERS.length.toString()} hint={`${CUSTOMERS.filter(c => c.status === "active").length} active`} icon="ri-user-3-line" />
-        <Stat label="Suppliers" value={SUPPLIERS.length.toString()} hint={`${SUPPLIERS.filter(s => s.status === "active").length} active`} icon="ri-truck-line" />
+        <Stat label="Customers" value={customers.length.toString()} hint={`${customers.filter(c => c.status === "active").length} active`} icon="ri-user-3-line" />
+        <Stat label="Suppliers" value={suppliers.length.toString()} hint={`${suppliers.filter(s => s.status === "active").length} active`} icon="ri-truck-line" />
         <Stat label="Customer receivable" value={format(totalReceivable)} hint="outstanding balance" icon="ri-arrow-right-down-line" tone="rose" />
         <Stat label="Supplier payable" value={format(totalPayable)} hint="awaiting payment" icon="ri-arrow-right-up-line" tone="rose" />
       </div>
@@ -75,14 +126,14 @@ export default function ContactsPage() {
             className={`px-4 py-1.5 rounded-md text-sm transition ${tab === "customers" ? "bg-gold-100 text-gold-700" : "text-ink-muted hover:bg-paper-100"}`}
           >
             <i className="ri-user-3-line mr-1.5" />
-            Customers <span className="text-ink-faint ml-1">({CUSTOMERS.length})</span>
+            Customers <span className="text-ink-faint ml-1">({customers.length})</span>
           </button>
           <button
             onClick={() => setTab("suppliers")}
             className={`px-4 py-1.5 rounded-md text-sm transition ${tab === "suppliers" ? "bg-gold-100 text-gold-700" : "text-ink-muted hover:bg-paper-100"}`}
           >
             <i className="ri-truck-line mr-1.5" />
-            Suppliers <span className="text-ink-faint ml-1">({SUPPLIERS.length})</span>
+            Suppliers <span className="text-ink-faint ml-1">({suppliers.length})</span>
           </button>
         </div>
 
@@ -118,7 +169,9 @@ export default function ContactsPage() {
               </tr>
             </thead>
             <tbody>
-              {customers.length === 0 ? (
+              {loading ? (
+                <tr><td colSpan={9} className="text-center text-ink-faint py-12">Loading customers...</td></tr>
+              ) : customers.length === 0 ? (
                 <tr><td colSpan={9} className="text-center text-ink-faint py-12">No customers match your filters.</td></tr>
               ) : customers.map((c) => (
                 <tr key={c.id} className="clickable" onClick={() => setDetail(c)}>
@@ -168,7 +221,9 @@ export default function ContactsPage() {
               </tr>
             </thead>
             <tbody>
-              {suppliers.length === 0 ? (
+              {loading ? (
+                <tr><td colSpan={9} className="text-center text-ink-faint py-12">Loading suppliers...</td></tr>
+              ) : suppliers.length === 0 ? (
                 <tr><td colSpan={9} className="text-center text-ink-faint py-12">No suppliers match your filters.</td></tr>
               ) : suppliers.map((s) => (
                 <tr key={s.id} className="clickable" onClick={() => setDetail(s)}>
@@ -214,11 +269,11 @@ export default function ContactsPage() {
         </div>
         <div className="surface-flat p-3">
           <div className="text-[10px] uppercase tracking-[0.14em] text-ink-muted">Avg customer spend</div>
-          <div className="font-numeric text-ink mt-0.5">{format(totalCustomerSpend / CUSTOMERS.length)}</div>
+          <div className="font-numeric text-ink mt-0.5">{customers.length ? format(totalCustomerSpend / customers.length) : format(0)}</div>
         </div>
         <div className="surface-flat p-3">
           <div className="text-[10px] uppercase tracking-[0.14em] text-ink-muted">Avg supplier delivery</div>
-          <div className="font-numeric text-ink mt-0.5">{fmtWeight(totalSupplied_g / SUPPLIERS.length)}</div>
+          <div className="font-numeric text-ink mt-0.5">{suppliers.length ? fmtWeight(totalSupplied_g / suppliers.length) : "0g"}</div>
         </div>
       </div>
 
@@ -231,7 +286,7 @@ export default function ContactsPage() {
         title={`Register a ${tab === "customers" ? "buyer" : "seller"}`}
         footer={<>
           <button className="btn-secondary" onClick={() => setCreating(false)}>Cancel</button>
-          <button className="btn-primary" onClick={() => setCreating(false)}>
+          <button className="btn-primary" onClick={handleSubmit}>
             <i className="ri-check-line" /> Save & assign ID
           </button>
         </>}>
@@ -239,7 +294,7 @@ export default function ContactsPage() {
           A unique ID will be auto-generated:
           <span className="font-numeric text-ink-soft ml-1">{tab === "customers" ? "CUST-2026-NNNNNN" : "SUPP-2026-NNNNNN"}</span>
         </p>
-        <ContactForm kind={tab} />
+        <ContactForm kind={tab} formData={formData} setFormData={setFormData} />
       </Modal>
 
       {/* Edit modal */}
@@ -380,7 +435,7 @@ function ContactDetailModal({
   );
 }
 
-function ContactForm({ kind, initial }: { kind: Tab; initial?: Customer | Supplier }) {
+function ContactForm({ kind, initial, formData, setFormData }: { kind: Tab; initial?: Customer | Supplier, formData?: any, setFormData?: any }) {
   const isCustomer = kind === "customers";
   return (
     <div className="grid grid-cols-2 gap-4">
@@ -388,22 +443,22 @@ function ContactForm({ kind, initial }: { kind: Tab; initial?: Customer | Suppli
         <input className="input" placeholder={isCustomer ? "Auto-generated CUST-2026-NNNNNN" : "Auto-generated SUPP-2026-NNNNNN"} disabled defaultValue={initial?.id} />
       </Field>
       <Field label="Status">
-        <select className="input" defaultValue={initial?.status || "active"}>
+        <select className="input" value={formData?.status || initial?.status || "active"} onChange={e => setFormData && setFormData({...formData, status: e.target.value})}>
           <option value="active">Active</option>
           <option value="inactive">Inactive</option>
         </select>
       </Field>
       <Field label={isCustomer ? "Customer / business name" : "Supplier / cooperative name"} full>
-        <input className="input" placeholder="Mwanza Refinery Ltd." defaultValue={initial?.name} />
+        <input className="input" placeholder="Mwanza Refinery Ltd." value={formData?.name || initial?.name || ""} onChange={e => setFormData && setFormData({...formData, name: e.target.value})} required />
       </Field>
       <Field label="Email">
-        <input className="input" type="email" placeholder="contact@example.tz" defaultValue={isCustomer ? (initial as Customer)?.email : (initial as Supplier)?.email} />
+        <input className="input" type="email" placeholder="contact@example.tz" value={formData?.email || (isCustomer ? (initial as Customer)?.email : (initial as Supplier)?.email) || ""} onChange={e => setFormData && setFormData({...formData, email: e.target.value})} />
       </Field>
       <Field label="Phone">
-        <input className="input" placeholder="+255 ..." defaultValue={isCustomer ? (initial as Customer)?.phone : (initial as Supplier)?.contact} />
+        <input className="input" placeholder="+255 ..." value={formData?.phone || (isCustomer ? (initial as Customer)?.phone : (initial as Supplier)?.contact) || ""} onChange={e => setFormData && setFormData({...formData, phone: e.target.value})} />
       </Field>
       <Field label="Location" full>
-        <input className="input" placeholder="Region · City" defaultValue={initial?.location} />
+        <input className="input" placeholder="Region · City" value={formData?.location || initial?.location || ""} onChange={e => setFormData && setFormData({...formData, location: e.target.value})} />
       </Field>
       {isCustomer ? (
         <>

@@ -1,5 +1,6 @@
 "use client";
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useSearchParams } from "next/navigation";
 import { PageHeader } from "../components/PageHeader";
 import { Badge, statusToTone } from "../components/Badge";
 import { Modal } from "../components/Modal";
@@ -15,16 +16,8 @@ const STATUS = ["All", "Pending", "Confirmed", "Rejected"];
 
 interface Tx { ref: string; date: string; type: string; party: string; amount: number; status: string; }
 
-const ROWS: Tx[] = [
-  ...RECENT_TX,
-  { ref: "TX-018336", date: "May 02", type: "Cash Inflow", party: "Investor — Amir K.", amount: 50_000, status: "confirmed" },
-  { ref: "TX-018335", date: "May 01", type: "Gold Sale", party: "Sukuma Gold Co.", amount: 12_400, status: "confirmed" },
-  { ref: "TX-018334", date: "Apr 30", type: "Op. Expense", party: "Office rent — May", amount: -2_800, status: "confirmed" },
-  { ref: "TX-018333", date: "Apr 30", type: "Logistics", party: "Insurance — Q2", amount: -3_200, status: "rejected" },
-  { ref: "TX-018332", date: "Apr 28", type: "Op. Expense", party: "Vault security — May", amount: -1_240, status: "confirmed" },
-  { ref: "TX-018331", date: "Apr 26", type: "Gold Sale", party: "Coastal Buyers", amount: 11_300, status: "confirmed" },
-  { ref: "TX-018330", date: "Apr 24", type: "Processing", party: "Refining Batch #223", amount: -2_100, status: "confirmed" },
-];
+// Initial rows are now handled by the backend API
+const INITIAL_ROWS: Tx[] = [];
 
 export default function TransactionsPage() {
   const [type, setType] = useState("All");
@@ -37,7 +30,62 @@ export default function TransactionsPage() {
   const { format } = useCurrency();
   const { inRangeFromShortDate, label: rangeLabel } = useDateRange();
 
-  const filtered = ROWS
+  const [rows, setRows] = useState<Tx[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [formData, setFormData] = useState({
+    date: new Date().toISOString().split('T')[0],
+    type: TYPES[1],
+    amount: "",
+    currency: "USD",
+    party: "",
+    description: ""
+  });
+
+  const searchParams = useSearchParams();
+
+  useEffect(() => {
+    fetchTransactions();
+    if (searchParams.get("action") === "new") {
+      setCreating(true);
+    }
+  }, [searchParams]);
+
+  const fetchTransactions = async () => {
+    setLoading(true);
+    try {
+      const res = await fetch('/api/transactions');
+      const data = await res.json();
+      setRows(Array.isArray(data) ? data : []);
+    } catch (err) {
+      console.error("Failed to fetch transactions:", err);
+      setRows([]);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    try {
+      const res = await fetch('/api/transactions', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          ...formData,
+          amount: parseFloat(formData.amount) * (formData.type === "Gold Purchase" || formData.type === "Op. Expense" || formData.type === "Logistics" || formData.type === "Processing" || formData.type === "Cash Outflow" ? -1 : 1)
+        })
+      });
+      if (res.ok) {
+        setCreating(false);
+        fetchTransactions();
+        setFormData({ ...formData, amount: "", party: "", description: "" });
+      }
+    } catch (err) {
+      alert("Failed to save transaction");
+    }
+  };
+
+  const filtered = (Array.isArray(rows) ? rows : [])
     .filter((r) => inRangeFromShortDate(r.date))
     .filter((r) => type === "All" || r.type === type)
     .filter((r) => status === "All" || r.status.toLowerCase() === status.toLowerCase())
@@ -112,7 +160,9 @@ export default function TransactionsPage() {
             </tr>
           </thead>
           <tbody>
-            {filtered.length === 0 ? (
+            {loading ? (
+              <tr><td colSpan={8} className="text-center text-ink-faint py-12">Loading transactions...</td></tr>
+            ) : filtered.length === 0 ? (
               <tr><td colSpan={8} className="text-center text-ink-faint py-12">No transactions match your filters.</td></tr>
             ) : filtered.map((t) => (
               <tr key={t.ref} className="clickable" onClick={() => setDetail(t)}>
@@ -169,40 +219,35 @@ export default function TransactionsPage() {
         eyebrow="New transaction" title="Record a transaction"
         footer={<>
           <button className="btn-secondary" onClick={() => setCreating(false)}>Cancel</button>
-          <button className="btn-secondary" onClick={() => setCreating(false)}>Save draft</button>
-          <button className="btn-primary" onClick={() => setCreating(false)}>Submit for approval</button>
+          <button className="btn-primary" onClick={handleSubmit}>Submit for approval</button>
         </>}>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-          <Field label="Date"><input type="date" defaultValue="2026-05-04" className="input" /></Field>
+        <form onSubmit={handleSubmit} className="grid grid-cols-1 md:grid-cols-2 gap-5">
+          <Field label="Date"><input type="date" value={formData.date} onChange={e => setFormData({...formData, date: e.target.value})} className="input" /></Field>
           <Field label="Type">
-            <select className="input">{TYPES.slice(1).map((t) => <option key={t}>{t}</option>)}</select>
+            <select className="input" value={formData.type} onChange={e => setFormData({...formData, type: e.target.value})}>
+              {TYPES.slice(1).map((t) => <option key={t}>{t}</option>)}
+            </select>
           </Field>
           <Field label="Amount">
             <div className="flex">
-              <input className="input rounded-r-none" placeholder="0.00" />
-              <select className="input rounded-l-none w-24">
+              <input className="input rounded-r-none" placeholder="0.00" value={formData.amount} onChange={e => setFormData({...formData, amount: e.target.value})} />
+              <select className="input rounded-l-none w-24" value={formData.currency} onChange={e => setFormData({...formData, currency: e.target.value})}>
                 <option>USD</option><option>TZS</option>
               </select>
             </div>
           </Field>
-          <Field label="Counterparty"><input className="input" placeholder="Supplier or customer" /></Field>
+          <Field label="Counterparty"><input className="input" placeholder="Supplier or customer" value={formData.party} onChange={e => setFormData({...formData, party: e.target.value})} /></Field>
           <Field label="Reference number"><input className="input" placeholder="Auto-generated" disabled /></Field>
           <Field label="AI suggested category" hint="92% confidence">
-            <div className="input flex items-center gap-2">
+            <div className="input flex items-center gap-2 text-ink-faint">
               <i className="ri-sparkling-2-line text-gold-600" />
               <span className="text-ink">Logistics & Security</span>
-              <button className="ml-auto text-xs text-ink-muted hover:underline">Override</button>
             </div>
           </Field>
           <Field label="Description" full>
-            <textarea rows={3} className="input" placeholder="Minimum 10 characters" />
+            <textarea rows={3} className="input" placeholder="Minimum 10 characters" value={formData.description} onChange={e => setFormData({...formData, description: e.target.value})} />
           </Field>
-          <Field label="Receipt attachment" full>
-            <button type="button" className="input flex items-center gap-2 text-ink-muted text-left">
-              <i className="ri-attachment-line" /> Upload PDF or image
-            </button>
-          </Field>
-        </div>
+        </form>
       </Modal>
     </div>
   );

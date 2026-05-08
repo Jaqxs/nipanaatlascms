@@ -1,5 +1,5 @@
 "use client";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { PageHeader } from "../components/PageHeader";
 import { Badge } from "../components/Badge";
 import { Modal } from "../components/Modal";
@@ -35,6 +35,61 @@ export default function SettingsPage() {
   const [tab, setTab] = useState("price");
   const [inviting, setInviting] = useState(false);
   const [managing, setManaging] = useState<User | null>(null);
+  const [settings, setSettings] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+  const [priceForm, setPriceForm] = useState({ price: "", source: "Manual" });
+  const [profileForm, setProfileForm] = useState({ name: "", tin: "", address: "", email: "", currency: "USD" });
+
+  useEffect(() => {
+    fetchSettings();
+  }, []);
+
+  const fetchSettings = async () => {
+    setLoading(true);
+    try {
+      const res = await fetch('/api/settings');
+      const data = await res.json();
+      setSettings(data);
+      if (data.company_profile) setProfileForm(data.company_profile);
+      if (data.gold_price) setPriceForm({ price: data.gold_price.current.toString(), source: data.gold_price.source });
+    } catch (err) {
+      console.error("Failed to fetch settings:", err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleSavePrice = async () => {
+    try {
+      const res = await fetch('/api/settings', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          gold_price: {
+            current: parseFloat(priceForm.price),
+            asOf: new Date().toLocaleDateString('en-US', { month: 'short', day: '2-digit' }) + " " + new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false }),
+            source: priceForm.source
+          }
+        })
+      });
+      if (res.ok) fetchSettings();
+    } catch (err) {
+      alert("Failed to update gold price");
+    }
+  };
+
+  const handleSaveProfile = async () => {
+    try {
+      const res = await fetch('/api/settings', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ company_profile: profileForm })
+      });
+      if (res.ok) fetchSettings();
+    } catch (err) {
+      alert("Failed to update company profile");
+    }
+  };
 
   return (
     <div>
@@ -62,20 +117,20 @@ export default function SettingsPage() {
               <div className="surface p-6" style={{ background: "#fdf6e4" }}>
                 <div className="text-[11px] uppercase tracking-[0.14em] text-gold-700">Active Gold Price</div>
                 <div className="flex items-baseline gap-3 mt-2">
-                  <div className="font-numeric text-[44px] text-ink leading-none">${GOLD_PRICE.current.toFixed(2)}</div>
+                  <div className="font-numeric text-[44px] text-ink leading-none">${settings?.gold_price?.current?.toFixed(2) || "—"}</div>
                   <div className="text-ink-muted">per gram · USD</div>
                 </div>
-                <div className="text-xs text-gold-700 mt-2">Set on {GOLD_PRICE.asOf} · {GOLD_PRICE.source}</div>
+                <div className="text-xs text-gold-700 mt-2">Set on {settings?.gold_price?.asOf} · {settings?.gold_price?.source}</div>
 
                 <div className="divider-rule my-5" />
 
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-                  <Field label="New price /g"><input className="input" placeholder="74.50" /></Field>
+                  <Field label="New price /g"><input className="input" placeholder="74.50" value={priceForm.price} onChange={e => setPriceForm({...priceForm, price: e.target.value})} /></Field>
                   <Field label="Currency"><select className="input"><option>USD</option><option>TZS</option></select></Field>
-                  <Field label="Source / reference"><input className="input" placeholder="LBMA · Reuters · Manual" /></Field>
+                  <Field label="Source / reference"><input className="input" placeholder="LBMA · Reuters · Manual" value={priceForm.source} onChange={e => setPriceForm({...priceForm, source: e.target.value})} /></Field>
                 </div>
                 <div className="flex items-center gap-3 mt-4">
-                  <button className="btn-primary">Save new price</button>
+                  <button className="btn-primary" onClick={handleSavePrice}>Save new price</button>
                   <label className="flex items-center gap-2 text-sm text-ink-muted">
                     <input type="checkbox" /> Use API mode (refresh every 15 min)
                   </label>
@@ -144,14 +199,14 @@ export default function SettingsPage() {
               <div className="text-[11px] uppercase tracking-[0.14em] text-ink-muted">General</div>
               <div className="font-display text-lg text-ink mb-5">Company profile</div>
               <div className="grid grid-cols-2 gap-4">
-                <Field label="Company name"><input className="input" defaultValue="NIPANA Atlas" /></Field>
-                <Field label="Trade registration"><input className="input" defaultValue="109-204-883" /></Field>
-                <Field label="Address"><input className="input" defaultValue="Mwanza, Tanzania" /></Field>
-                <Field label="Contact email"><input className="input" defaultValue="ops@nipana.tz" /></Field>
-                <Field label="Base currency"><select className="input"><option>USD</option><option>TZS</option></select></Field>
+                <Field label="Company name"><input className="input" value={profileForm.name} onChange={e => setProfileForm({...profileForm, name: e.target.value})} /></Field>
+                <Field label="Trade registration"><input className="input" value={profileForm.tin} onChange={e => setProfileForm({...profileForm, tin: e.target.value})} /></Field>
+                <Field label="Address"><input className="input" value={profileForm.address} onChange={e => setProfileForm({...profileForm, address: e.target.value})} /></Field>
+                <Field label="Contact email"><input className="input" value={profileForm.email} onChange={e => setProfileForm({...profileForm, email: e.target.value})} /></Field>
+                <Field label="Base currency"><select className="input" value={profileForm.currency} onChange={e => setProfileForm({...profileForm, currency: e.target.value})}><option>USD</option><option>TZS</option></select></Field>
                 <Field label="Fiscal year start"><select className="input"><option>January</option><option>July</option></select></Field>
               </div>
-              <div className="mt-6"><button className="btn-primary">Save changes</button></div>
+              <div className="mt-6"><button className="btn-primary" onClick={handleSaveProfile}>Save changes</button></div>
             </div>
           )}
 

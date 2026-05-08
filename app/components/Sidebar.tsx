@@ -24,12 +24,11 @@ export function Sidebar() {
     <aside className="w-64 shrink-0 hidden md:flex flex-col px-4 py-6 border-r border-line bg-white h-screen sticky top-0">
       <div className="px-2 mb-8">
         <div className="flex items-center gap-3">
-          <div
-            className="w-10 h-10 rounded-lg flex items-center justify-center"
-            style={{ background: "#b8893d" }}
-          >
-            <i className="ri-coin-line text-white text-xl" />
-          </div>
+          <img
+            src="/asset/logo.jpeg"
+            alt="NIPANA Logo"
+            className="w-10 h-10 object-contain rounded-lg"
+          />
           <div>
             <div className="font-display text-[17px] leading-tight text-ink">
               NIPANA

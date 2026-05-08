@@ -1,5 +1,6 @@
 "use client";
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useSearchParams } from "next/navigation";
 import { PageHeader, FilterChip } from "../components/PageHeader";
 import { Badge, statusToTone } from "../components/Badge";
 import { Modal } from "../components/Modal";
@@ -19,13 +20,92 @@ export default function QuotationsPage() {
   const [converting, setConverting] = useState<Quote | null>(null);
   const [exportOpen, setExportOpen] = useState(false);
   const { format } = useCurrency();
+  const searchParams = useSearchParams();
+  const [quotations, setQuotations] = useState<Quote[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [formData, setFormData] = useState({
+    customer: "",
+    validity: "7",
+    issueDate: new Date().toISOString().split('T')[0],
+    expiryDate: "",
+    description: "",
+    weight: "",
+    price: ""
+  });
+
+  useEffect(() => {
+    fetchQuotations();
+  }, []);
+
+  const fetchQuotations = async () => {
+    setLoading(true);
+    try {
+      const res = await fetch('/api/quotations');
+      const data = await res.json();
+      setQuotations(Array.isArray(data) ? data : []);
+    } catch (err) {
+      console.error("Failed to fetch quotations:", err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    try {
+      const res = await fetch('/api/quotations', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(formData)
+      });
+      if (res.ok) {
+        setCreating(false);
+        fetchQuotations();
+        setFormData({
+          customer: "",
+          validity: "7",
+          issueDate: new Date().toISOString().split('T')[0],
+          expiryDate: "",
+          description: "",
+          weight: "",
+          price: ""
+        });
+      }
+    } catch (err) {
+      alert("Failed to save quotation");
+    }
+  };
+
+  const handleConvert = async (q: Quote) => {
+    try {
+      const res = await fetch('/api/quotations/convert', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ quotationId: q.id })
+      });
+      if (res.ok) {
+        setConverting(null);
+        fetchQuotations();
+      }
+    } catch (err) {
+      alert("Failed to convert quotation");
+    }
+  };
+
+  useEffect(() => {
+    if (searchParams.get("action") === "new") {
+      setCreating(true);
+    }
+  }, [searchParams]);
+
+  const quoArray = Array.isArray(quotations) ? quotations : [];
 
   const counts = STATUSES.reduce<Record<string, number>>((acc, s) => {
-    acc[s] = s === "All" ? QUOTATIONS.length : QUOTATIONS.filter((q) => q.status === s).length;
+    acc[s] = s === "All" ? quoArray.length : quoArray.filter((q) => q.status === s).length;
     return acc;
   }, {});
 
-  const filtered = tab === "All" ? QUOTATIONS : QUOTATIONS.filter((q) => q.status === tab);
+  const filtered = tab === "All" ? quoArray : quoArray.filter((q) => q.status === tab);
 
   return (
     <div>
@@ -143,6 +223,17 @@ export default function QuotationsPage() {
         </>}>
         {detail && (
           <div>
+            <div className="flex items-center gap-3 mb-6">
+              <img
+                src="/asset/logo.jpeg"
+                alt="NIPANA Logo"
+                className="w-12 h-12 object-contain rounded-lg"
+              />
+              <div>
+                <div className="font-display text-xl text-ink">NIPANA Atlas</div>
+                <div className="text-xs text-ink-muted">Mwanza, Tanzania · Quotation</div>
+              </div>
+            </div>
             <div className="flex items-center justify-between mb-5">
               <Badge tone={statusToTone(detail.status)}>{detail.status}</Badge>
               <span className="text-sm text-ink-muted">Expires {detail.expires}</span>
@@ -179,7 +270,7 @@ export default function QuotationsPage() {
         eyebrow="Confirm" title="Convert quotation to invoice"
         footer={<>
           <button className="btn-secondary" onClick={() => setConverting(null)}>Cancel</button>
-          <button className="btn-primary" onClick={() => setConverting(null)}>Create invoice</button>
+          <button className="btn-primary" onClick={() => converting && handleConvert(converting)}>Create invoice</button>
         </>}>
         {converting && (
           <p className="text-sm text-ink-soft">
@@ -190,18 +281,17 @@ export default function QuotationsPage() {
 
       <ExportModal open={exportOpen} onClose={() => setExportOpen(false)} resource="quotations" rowCount={filtered.length} />
 
-      {/* Create quotation */}
       <Modal open={creating} onClose={() => setCreating(false)} size="lg"
         eyebrow="New quotation" title="Create quotation"
-        footer={<><button className="btn-secondary" onClick={() => setCreating(false)}>Cancel</button><button className="btn-primary" onClick={() => setCreating(false)}>Save as draft</button></>}>
+        footer={<><button className="btn-secondary" onClick={() => setCreating(false)}>Cancel</button><button className="btn-primary" onClick={handleSubmit}>Save quotation</button></>}>
         <div className="grid grid-cols-2 gap-4">
-          <Field label="Customer"><input className="input" placeholder="Select customer" /></Field>
-          <Field label="Validity (days)"><input className="input" defaultValue="7" type="number" /></Field>
-          <Field label="Issue date"><input type="date" className="input" defaultValue="2026-05-04" /></Field>
-          <Field label="Expiry date"><input type="date" className="input" defaultValue="2026-05-11" /></Field>
-          <Field label="Description" full><input className="input" placeholder="Gold lot or service description" /></Field>
-          <Field label="Weight (g)"><input className="input" placeholder="0.000" /></Field>
-          <Field label="Quoted price /g"><input className="input" placeholder="0.00" /></Field>
+          <Field label="Customer"><input className="input" placeholder="Select customer" value={formData.customer} onChange={e => setFormData({...formData, customer: e.target.value})} /></Field>
+          <Field label="Validity (days)"><input className="input" type="number" value={formData.validity} onChange={e => setFormData({...formData, validity: e.target.value})} /></Field>
+          <Field label="Issue date"><input type="date" className="input" value={formData.issueDate} onChange={e => setFormData({...formData, issueDate: e.target.value})} /></Field>
+          <Field label="Expiry date"><input type="date" className="input" value={formData.expiryDate} onChange={e => setFormData({...formData, expiryDate: e.target.value})} /></Field>
+          <Field label="Description" full><input className="input" placeholder="Gold lot or service description" value={formData.description} onChange={e => setFormData({...formData, description: e.target.value})} /></Field>
+          <Field label="Weight (g)"><input className="input" placeholder="0.000" value={formData.weight} onChange={e => setFormData({...formData, weight: e.target.value})} /></Field>
+          <Field label="Quoted price /g"><input className="input" placeholder="0.00" value={formData.price} onChange={e => setFormData({...formData, price: e.target.value})} /></Field>
           <Field label="Notes / terms" full><textarea rows={2} className="input" /></Field>
         </div>
       </Modal>
