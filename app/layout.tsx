@@ -1,5 +1,6 @@
+"use client";
 import "./globals.css";
-import type { Metadata } from "next";
+import { useState } from "react";
 import { Sidebar } from "./components/Sidebar";
 import { TopBar } from "./components/TopBar";
 import { RoleProvider } from "./lib/role-context";
@@ -8,12 +9,9 @@ import { DateRangeProvider } from "./lib/date-range-context";
 import { AuthProvider } from "./lib/auth-context";
 import { AuthGate } from "./components/AuthGate";
 
-export const metadata: Metadata = {
-  title: "GBMS — Atlas",
-  description: "Gold Business Management System — Executive Intelligence",
-};
-
 export default function RootLayout({ children }: { children: React.ReactNode }) {
+  const [sidebarOpen, setSidebarOpen] = useState(true);
+
   return (
     <html lang="en">
       <head>
@@ -28,10 +26,10 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             <CurrencyProvider>
               <DateRangeProvider>
               <AuthGate>
-                <div className="flex h-screen w-screen">
-                  <Sidebar />
+                <div className="flex h-screen w-screen overflow-hidden">
+                  <Sidebar isOpen={sidebarOpen} setIsOpen={setSidebarOpen} />
                   <div className="flex-1 flex flex-col min-w-0 h-screen overflow-hidden">
-                    <TopBar />
+                    <TopBar onMenuClick={() => setSidebarOpen(!sidebarOpen)} />
                     <main className="flex-1 overflow-y-auto px-6 md:px-10 py-8">
                       <div className="max-w-[1480px] mx-auto">{children}</div>
                       <footer className="mt-12 px-0 py-6 text-xs text-ink-faint max-w-[1480px] mx-auto">

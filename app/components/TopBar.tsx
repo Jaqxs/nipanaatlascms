@@ -7,7 +7,7 @@ import { useAuth } from "../lib/auth-context";
 import { NotificationBell } from "./NotificationBell";
 import { useEffect, useRef, useState } from "react";
 
-export function TopBar() {
+export function TopBar({ onMenuClick }: { onMenuClick?: () => void }) {
   const { role, setRole, isAdmin } = useRole();
   const { code, setCode } = useCurrency();
   const { rangeId, setRangeId, custom, setCustom } = useDateRange();
@@ -40,7 +40,14 @@ export function TopBar() {
   return (
     <header className="bg-white border-b border-line shrink-0">
       <div className="px-6 md:px-10 py-3 flex items-center gap-4 max-w-[1480px] w-full mx-auto">
-        <div className="text-[11px] uppercase tracking-[0.18em] text-ink-faint">
+        <button 
+          onClick={onMenuClick}
+          className="w-9 h-9 flex items-center justify-center surface-flat md:hidden"
+        >
+          <i className="ri-menu-2-line text-lg" />
+        </button>
+
+        <div className="hidden sm:block text-[11px] uppercase tracking-[0.18em] text-ink-faint">
           {isAdmin ? "Administration" : "Field Operations"} · NIPANA Atlas
         </div>
 

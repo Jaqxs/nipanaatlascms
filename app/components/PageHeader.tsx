@@ -8,7 +8,7 @@ export function PageHeader({
     <div className="flex items-end justify-between gap-6 flex-wrap mb-6">
       <div className="min-w-0">
         {title && (
-          <h1 className="font-display text-[28px] leading-tight text-ink">{title}</h1>
+          <h1 className="font-display text-2xl leading-tight text-ink">{title}</h1>
         )}
         {description && (
           <p className="text-ink-muted text-sm mt-1">{description}</p>
