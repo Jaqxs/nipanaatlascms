@@ -1,5 +1,4 @@
 "use client";
-export const dynamic = "force-dynamic";
 import { useState, useEffect } from "react";
 import { useSearchParams } from "next/navigation";
 import { PageHeader } from "../components/PageHeader";
@@ -86,15 +85,23 @@ export default function TransactionsPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!formData.amount || isNaN(parseFloat(formData.amount))) {
+      alert("Please enter a valid numeric amount");
+      return;
+    }
     try {
+      const amountValue = parseFloat(formData.amount);
+      const multiplier = (formData.type === "Gold Purchase" || formData.type === "Op. Expense" || formData.type === "Logistics" || formData.type === "Processing" || formData.type === "Cash Outflow" ? -1 : 1);
+      
       const res = await fetch('/api/transactions', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           ...formData,
-          amount: parseFloat(formData.amount) * (formData.type === "Gold Purchase" || formData.type === "Op. Expense" || formData.type === "Logistics" || formData.type === "Processing" || formData.type === "Cash Outflow" ? -1 : 1)
+          amount: amountValue * multiplier
         })
       });
+      const result = await res.json();
       
       if (res.ok) {
         setCreating(false);
@@ -102,11 +109,10 @@ export default function TransactionsPage() {
         setFormData({ ...formData, amount: "", party: "", description: "" });
         alert("Transaction recorded successfully!");
       } else {
-        const errorData = await res.json();
-        alert(`Server Error (${res.status}): ${errorData.error || 'Unknown error'}`);
+        alert("Server Error: " + (result.error || "Unknown error"));
       }
     } catch (err) {
-      alert("Network Error: Could not reach the server. Check your internet or domain connection.");
+      alert("Network Error: Could not reach the server. Check your connection.");
     }
   };
 
