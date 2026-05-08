@@ -11,22 +11,19 @@ let db: Database | null = null;
 export async function getDb() {
   if (db) return db;
 
-  const prodDir = '/app/data';
-  const localDir = path.join(process.cwd(), 'data');
+  // Force absolute path for Docker stability
+  const dbPath = '/app/data/gbms.db';
+  const dataDir = '/app/data';
   
-  let targetDir = localDir;
-  try {
-    if (fs.existsSync(prodDir)) {
-      targetDir = prodDir;
-    } else {
-      if (!fs.existsSync(localDir)) fs.mkdirSync(localDir, { recursive: true });
+  if (!fs.existsSync(dataDir)) {
+    try {
+      fs.mkdirSync(dataDir, { recursive: true });
+    } catch (e) {
+      console.error("[DB] Could not create /app/data, falling back to local");
     }
-  } catch (e) {
-    console.error("[DB] Path detection error:", e);
   }
 
-  const dbPath = path.join(targetDir, 'gbms.db');
-  console.log(`[DB] Using path: ${dbPath}`);
+  console.log(`[DB] Connecting to absolute path: ${dbPath}`);
   
   try {
     db = await open({
