@@ -299,6 +299,28 @@ export default function TransactionsPage() {
           </Field>
         </form>
       </Modal>
+      {/* Emergency Tools */}
+      <div className="mt-8 p-4 bg-amber-50 border border-amber-200 rounded-xl flex items-center justify-between">
+        <div>
+          <h3 className="text-amber-800 font-bold text-sm">System Resilience Tool</h3>
+          <p className="text-amber-600 text-xs mt-1">If the server is stuck, use this to save your current work locally.</p>
+        </div>
+        <button 
+          onClick={async () => {
+            const res = await fetch('/api/debug');
+            const data = await res.json();
+            const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `gbms_emergency_backup_${new Date().toISOString()}.json`;
+            a.click();
+          }}
+          className="px-4 py-2 bg-amber-600 text-white rounded-lg text-sm font-bold hover:bg-amber-700 transition-colors"
+        >
+          Export Database
+        </button>
+      </div>
     </div>
   );
 }
