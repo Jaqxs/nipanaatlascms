@@ -21,6 +21,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         />
       </head>
       <body className="h-screen overflow-hidden">
+        <div className="bg-yellow-400 text-black text-[10px] font-bold py-1 px-4 text-center sticky top-0 z-[100] uppercase tracking-widest">
+          V3-ULTRA System Active • Build: 0314AM • Local Database Bypass Enabled
+        </div>
         <AuthProvider>
           <RoleProvider>
             <CurrencyProvider>
