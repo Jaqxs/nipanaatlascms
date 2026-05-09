@@ -49,8 +49,9 @@ export function Sidebar({ isOpen, setIsOpen }: { isOpen: boolean; setIsOpen: (v:
                 <div className="font-display text-[17px] leading-tight text-ink">
                   NIPANA
                 </div>
-                <div className="text-[10px] tracking-[0.18em] uppercase text-gold-600 font-bold">
-                  [DEBUG MODE] GBMS
+                <div className="flex items-center gap-1.5 text-[10px] tracking-[0.18em] uppercase font-bold">
+                  <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                  <span className="text-emerald-600">Server Live</span>
                 </div>
               </div>
             </div>
