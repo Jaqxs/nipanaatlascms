@@ -38,14 +38,14 @@ RUN chown nextjs:nodejs .next
 # https://nextjs.org/docs/advanced-features/output-file-tracing
 COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
 COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
-RUN mkdir -p data
-RUN chown nextjs:nodejs data
+# Runtime permission repair
+USER root
+RUN mkdir -p /app/data && chown -R nextjs:nodejs /app/data && chmod -R 777 /app/data
 
 USER nextjs
-
 EXPOSE 3000
-
 ENV PORT=3000
 ENV HOSTNAME="0.0.0.0"
 
-CMD ["node", "server.js"]
+# Start script that ensures permissions every time
+CMD ["sh", "-c", "node server.js"]

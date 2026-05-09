@@ -1,39 +1,46 @@
 import { NextResponse } from 'next/server';
 import fs from 'fs';
 import path from 'path';
-import sqlite3 from 'sqlite3';
+
+export const dynamic = 'force-dynamic';
 
 export async function GET() {
-  const reports = [];
-  
-  // Test 1: Filesystem
-  const dataDir = '/app/data';
-  try {
-    const exists = fs.existsSync(dataDir);
-    const writable = exists ? (function() {
-      try {
-        fs.writeFileSync(path.join(dataDir, '.test-write'), 'test');
-        fs.unlinkSync(path.join(dataDir, '.test-write'));
-        return true;
-      } catch (e) { return false; }
-    })() : false;
-    
-    reports.push({ test: "Folder Access", result: exists ? "Found" : "Not Found", writable });
-  } catch (e: any) {
-    reports.push({ test: "Folder Access", result: "Error", error: e.message });
-  }
+  const folders = [
+    { name: 'App Data', path: '/app/data' },
+    { name: 'Current Dir', path: path.join(process.cwd(), 'data') },
+    { name: 'System Tmp', path: '/tmp' }
+  ];
 
-  // Test 2: SQLite Driver
-  try {
-    const drv = sqlite3.verbose();
-    reports.push({ test: "SQLite Driver", result: "Loaded", version: "Standard" });
-  } catch (e: any) {
-    reports.push({ test: "SQLite Driver", result: "Failed", error: e.message });
-  }
+  const results = folders.map(f => {
+    let exists = false;
+    let writable = false;
+    let error = null;
 
-  return NextResponse.json({ 
-    status: "Diagnostics Complete",
-    time: new Date().toISOString(),
-    reports 
+    try {
+      exists = fs.existsSync(f.path);
+      if (!exists) {
+        fs.mkdirSync(f.path, { recursive: true });
+        exists = true;
+      }
+      const testFile = path.join(f.path, 'test_write.txt');
+      fs.writeFileSync(testFile, 'OK-' + new Date().toISOString());
+      fs.unlinkSync(testFile);
+      writable = true;
+    } catch (e: any) {
+      error = e.message;
+    }
+
+    return { ...f, exists, writable, error };
+  });
+
+  return NextResponse.json({
+    status: 'FLIGHT_RECORDER_ACTIVE',
+    timestamp: new Date().toISOString(),
+    folder_diagnostics: results,
+    env: {
+      NODE_ENV: process.env.NODE_ENV,
+      CWD: process.cwd(),
+      USER: process.env.USER || 'unknown'
+    }
   });
 }
