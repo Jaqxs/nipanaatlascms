@@ -1,7 +1,7 @@
 import fs from 'fs';
 import path from 'path';
-import crypto from 'crypto';
 
+// COMPLETELY REMOVED SQLITE IMPORTS TO PREVENT CRASHES
 const DB_FILE = '/app/data/db.json';
 
 interface DatabaseSchema {
@@ -28,17 +28,31 @@ function ensureDb() {
     try { fs.mkdirSync(dataDir, { recursive: true }); } catch (e) {}
   }
   if (!fs.existsSync(DB_FILE)) {
-    fs.writeFileSync(DB_FILE, JSON.stringify(DEFAULT_DB));
+    try {
+      fs.writeFileSync(DB_FILE, JSON.stringify(DEFAULT_DB));
+    } catch (e) {
+      console.error("FATAL: Could not write DB file", e);
+    }
   }
 }
 
 export async function getDb() {
   ensureDb();
   
-  const read = () => JSON.parse(fs.readFileSync(DB_FILE, 'utf-8')) as DatabaseSchema;
-  const write = (data: DatabaseSchema) => fs.writeFileSync(DB_FILE, JSON.stringify(data, null, 2));
+  const read = () => {
+    try {
+      if (!fs.existsSync(DB_FILE)) return DEFAULT_DB;
+      return JSON.parse(fs.readFileSync(DB_FILE, 'utf-8')) as DatabaseSchema;
+    } catch (e) { return DEFAULT_DB; }
+  };
 
-  // Mocking a SQL-like interface so I don't have to rewrite every single API
+  const write = (data: DatabaseSchema) => {
+    try {
+      fs.writeFileSync(DB_FILE, JSON.stringify(data, null, 2));
+      return true;
+    } catch (e) { return false; }
+  };
+
   return {
     all: async (sql: string, params: any[] = []) => {
       const db = read();
