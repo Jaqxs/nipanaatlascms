@@ -37,11 +37,35 @@ export async function POST(request: Request) {
 
     const newTx = await db.get('SELECT * FROM transactions WHERE id = ?', id);
     console.log(`[API] Transaction saved:`, newTx.ref);
-    return NextResponse.json(newTx);
+    const result = { success: true, id };
+    return new NextResponse(JSON.stringify(result), {
+      status: 200,
+      headers: {
+        'Access-Control-Allow-Origin': '*',
+        'Content-Type': 'application/json',
+      }
+    });
   } catch (error: any) {
     console.error(`[API] Create transaction FAILED:`, error);
-    return NextResponse.json({ error: error.message || 'Failed to create transaction' }, { status: 500 });
+    return new NextResponse(JSON.stringify({ error: error.message || 'Failed to create transaction' }), {
+      status: 500,
+      headers: {
+        'Access-Control-Allow-Origin': '*',
+        'Content-Type': 'application/json',
+      }
+    });
   }
+}
+
+export async function OPTIONS() {
+  return new NextResponse(null, {
+    status: 204,
+    headers: {
+      'Access-Control-Allow-Origin': '*',
+      'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
+      'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+    },
+  });
 }
 
 export async function PATCH(request: Request) {
