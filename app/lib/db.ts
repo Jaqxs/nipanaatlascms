@@ -1,109 +1,82 @@
-import sqlite3 from 'sqlite3';
-import { open, Database } from 'sqlite';
-import path from 'path';
 import fs from 'fs';
+import path from 'path';
+import crypto from 'crypto';
 
-let db: Database | null = null;
+const DB_FILE = '/app/data/db.json';
+
+interface DatabaseSchema {
+  transactions: any[];
+  inventory: any[];
+  sites: any[];
+  contacts: any[];
+  invoices: any[];
+  quotations: any[];
+}
+
+const DEFAULT_DB: DatabaseSchema = {
+  transactions: [],
+  inventory: [],
+  sites: [],
+  contacts: [],
+  invoices: [],
+  quotations: []
+};
+
+function ensureDb() {
+  const dataDir = path.dirname(DB_FILE);
+  if (!fs.existsSync(dataDir)) {
+    try { fs.mkdirSync(dataDir, { recursive: true }); } catch (e) {}
+  }
+  if (!fs.existsSync(DB_FILE)) {
+    fs.writeFileSync(DB_FILE, JSON.stringify(DEFAULT_DB));
+  }
+}
 
 export async function getDb() {
-  if (db) return db;
+  ensureDb();
+  
+  const read = () => JSON.parse(fs.readFileSync(DB_FILE, 'utf-8')) as DatabaseSchema;
+  const write = (data: DatabaseSchema) => fs.writeFileSync(DB_FILE, JSON.stringify(data, null, 2));
 
-  const dbPath = ':memory:';
-  console.log(`[DB] MEMORY MODE ENABLED`);
-
-  try {
-    const sqlite3Verbose = sqlite3.verbose();
-    db = await open({
-      filename: dbPath,
-      driver: sqlite3Verbose.Database
-    });
-    
-    await db.exec('PRAGMA journal_mode = WAL;');
-    await db.exec('PRAGMA foreign_keys = ON;');
-    console.log(`[DB] Successfully connected to ${dbPath}`);
-  } catch (err: any) {
-    console.error(`[DB] FATAL ERROR: ${err.message}`);
-    throw new Error(`SQLITE_DRIVER_ERROR: ${err.message}`);
-  }
-
-  await db.exec(`
-    CREATE TABLE IF NOT EXISTS transactions (
-      id TEXT PRIMARY KEY,
-      ref TEXT UNIQUE,
-      date TEXT,
-      type TEXT,
-      party TEXT,
-      amount REAL,
-      status TEXT,
-      description TEXT,
-      submittedBy TEXT DEFAULT 'J. Assey',
-      createdAt DATETIME DEFAULT CURRENT_TIMESTAMP
-    );
-
-    CREATE TABLE IF NOT EXISTS invoices (
-      id TEXT PRIMARY KEY,
-      no TEXT UNIQUE,
-      customer TEXT,
-      due TEXT,
-      amount REAL,
-      status TEXT,
-      createdAt DATETIME DEFAULT CURRENT_TIMESTAMP
-    );
-
-    CREATE TABLE IF NOT EXISTS inventory (
-      id TEXT PRIMARY KEY,
-      batch TEXT UNIQUE,
-      weight REAL,
-      karat INTEGER,
-      fine REAL,
-      location TEXT,
-      status TEXT,
-      value REAL,
-      source TEXT,
-      createdAt DATETIME DEFAULT CURRENT_TIMESTAMP
-    );
-
-    CREATE TABLE IF NOT EXISTS sites (
-      id TEXT PRIMARY KEY,
-      name TEXT NOT NULL,
-      location TEXT,
-      manager TEXT,
-      type TEXT, 
-      status TEXT DEFAULT 'active',
-      productionRate REAL DEFAULT 0,
-      createdAt DATETIME DEFAULT CURRENT_TIMESTAMP
-    );
-
-    CREATE TABLE IF NOT EXISTS contacts (
-      id TEXT PRIMARY KEY,
-      name TEXT,
-      email TEXT,
-      phone TEXT,
-      location TEXT,
-      type TEXT,
-      totalPurchases REAL DEFAULT 0,
-      outstanding REAL DEFAULT 0,
-      status TEXT DEFAULT 'active',
-      joined TEXT,
-      lastTx TEXT,
-      createdAt DATETIME DEFAULT CURRENT_TIMESTAMP
-    );
-
-    CREATE TABLE IF NOT EXISTS quotations (
-      id TEXT PRIMARY KEY,
-      no TEXT UNIQUE,
-      customer TEXT,
-      expires TEXT,
-      amount REAL,
-      status TEXT,
-      createdAt DATETIME DEFAULT CURRENT_TIMESTAMP
-    );
-
-    CREATE TABLE IF NOT EXISTS settings (
-      key TEXT PRIMARY KEY,
-      value TEXT
-    );
-  `);
-
-  return db;
+  // Mocking a SQL-like interface so I don't have to rewrite every single API
+  return {
+    all: async (sql: string, params: any[] = []) => {
+      const db = read();
+      if (sql.includes('FROM transactions')) return db.transactions;
+      if (sql.includes('FROM inventory')) return db.inventory;
+      if (sql.includes('FROM sites')) return db.sites;
+      if (sql.includes('FROM contacts')) return db.contacts;
+      if (sql.includes('FROM invoices')) return db.invoices;
+      return [];
+    },
+    get: async (sql: string, params: any[] = []) => {
+      const db = read();
+      const id = params[0];
+      if (sql.includes('FROM transactions')) return db.transactions.find(t => t.id === id);
+      if (sql.includes('FROM sites')) return db.sites.find(s => s.id === id);
+      return null;
+    },
+    run: async (sql: string, params: any[] = []) => {
+      const db = read();
+      if (sql.startsWith('INSERT INTO transactions')) {
+        const [id, ref, date, type, party, amount, status, description, submittedBy] = params;
+        db.transactions.push({ id, ref, date, type, party, amount, status, description, submittedBy, createdAt: new Date().toISOString() });
+      } else if (sql.startsWith('INSERT INTO sites')) {
+        const [id, name, location, manager, type, status, productionRate] = params;
+        db.sites.push({ id, name, location, manager, type, status, productionRate, createdAt: new Date().toISOString() });
+      } else if (sql.startsWith('DELETE FROM sites')) {
+        const id = params[0];
+        db.sites = db.sites.filter(s => s.id !== id);
+      } else if (sql.startsWith('UPDATE sites')) {
+        const [name, location, manager, type, status, id] = params;
+        const site = db.sites.find(s => s.id === id);
+        if (site) Object.assign(site, { name, location, manager, type, status });
+      }
+      write(db);
+      return { lastID: params[0] };
+    },
+    exec: async (sql: string) => {
+      ensureDb();
+    }
+  };
 }
