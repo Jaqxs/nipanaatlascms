@@ -8,6 +8,7 @@ import { RowActionsMenu } from "../components/RowActionsMenu";
 import { ExportModal } from "../components/ExportModal";
 import { QUOTATIONS } from "../lib/mockData";
 import { useCurrency } from "../lib/currency-context";
+import { getApiUrl } from "../lib/config";
 
 type Quote = typeof QUOTATIONS[number];
 
@@ -40,7 +41,7 @@ export default function QuotationsPage() {
   const fetchQuotations = async () => {
     setLoading(true);
     try {
-      const res = await fetch('/api/quotations');
+      const res = await fetch(getApiUrl('/api/quotations'));
       const data = await res.json();
       setQuotations(Array.isArray(data) ? data : []);
     } catch (err) {
@@ -53,7 +54,7 @@ export default function QuotationsPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      const res = await fetch('/api/quotations', {
+      const res = await fetch(getApiUrl('/api/quotations'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(formData)
@@ -78,7 +79,7 @@ export default function QuotationsPage() {
 
   const handleConvert = async (q: Quote) => {
     try {
-      const res = await fetch('/api/quotations/convert', {
+      const res = await fetch(getApiUrl('/api/quotations/convert'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ quotationId: q.id })

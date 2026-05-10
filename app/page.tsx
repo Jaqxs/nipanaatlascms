@@ -7,6 +7,7 @@ import { AlertsPanel, AlertItem } from "./components/AlertsPanel";
 import { Badge, statusToTone } from "./components/Badge";
 import { Modal } from "./components/Modal";
 import { PageHeader } from "./components/PageHeader";
+import { getApiUrl } from "./lib/config";
 import { RowActionsMenu } from "./components/RowActionsMenu";
 import { GoldPriceCard } from "./components/GoldPriceCard";
 import { ExportModal } from "./components/ExportModal";
@@ -40,12 +41,12 @@ export default function Dashboard() {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const [statsRes, txRes] = await Promise.all([
-          fetch('/api/dashboard/stats'),
-          fetch('/api/transactions?limit=8')
+        const [statsRes, txsRes] = await Promise.all([
+          fetch(getApiUrl('/api/dashboard/stats')),
+          fetch(getApiUrl('/api/transactions?limit=8'))
         ]);
         const statsData = await statsRes.json();
-        const txData = await txRes.json();
+        const txData = await txsRes.json();
         setStats(statsData);
         setRecentTx(Array.isArray(txData) ? txData : []);
       } catch (err) {

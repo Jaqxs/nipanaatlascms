@@ -64,8 +64,12 @@ export async function getDb() {
             console.log("[DATABASE] Cloud data synchronized.");
           }
         }
-      } catch (e) {
-        console.error("[DATABASE] Backend connection failed, using local state.");
+      } catch (e: any) {
+        console.error("[DATABASE] Backend connection FAILED:");
+        console.error(" - URL:", CLOUD_URL);
+        console.error(" - Error:", e.message || e);
+        if (e.cause) console.error(" - Cause:", e.cause);
+        console.warn("[DATABASE] Falling back to local/memory state.");
       }
     }
     INITIALIZED = true;
@@ -78,7 +82,9 @@ export async function getDb() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(MEMORY_DB)
       });
-    } catch (e) {}
+    } catch (e: any) {
+      console.warn("[DATABASE] Background Sync failed:", e.message);
+    }
   };
 
   // IF SQLITE IS WORKING, RETURN REAL DB WRAPPER
