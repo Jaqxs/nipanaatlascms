@@ -7,18 +7,18 @@ export async function GET() {
     
     // Transactions
     const txs = await db.all('SELECT amount, type FROM transactions');
-    const totalSales = txs.filter(t => t.amount > 0).reduce((a, b) => a + b.amount, 0);
-    const totalExpenses = Math.abs(txs.filter(t => t.amount < 0).reduce((a, b) => a + b.amount, 0));
+    const totalSales = txs.filter((t: any) => t.amount > 0).reduce((a: number, b: any) => a + b.amount, 0);
+    const totalExpenses = Math.abs(txs.filter((t: any) => t.amount < 0).reduce((a: number, b: any) => a + b.amount, 0));
     const netProfit = totalSales - totalExpenses;
 
     // Inventory
     const inventory = await db.all('SELECT weight, value FROM inventory');
-    const stockWeight = inventory.reduce((a, b) => a + b.weight, 0);
-    const stockValue = inventory.reduce((a, b) => a + b.value, 0);
+    const stockWeight = inventory.reduce((a: number, b: any) => a + b.weight, 0);
+    const stockValue = inventory.reduce((a: number, b: any) => a + b.value, 0);
 
     // Invoices
     const pendingInvoices = await db.all("SELECT amount FROM invoices WHERE status != 'Paid'");
-    const pendingInvoicesValue = pendingInvoices.reduce((a, b) => a + b.amount, 0);
+    const pendingInvoicesValue = pendingInvoices.reduce((a: number, b: any) => a + b.amount, 0);
 
     return NextResponse.json({
       totalSales,
