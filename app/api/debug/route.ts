@@ -11,7 +11,7 @@ export async function GET() {
     { name: 'System Tmp', path: '/tmp' }
   ];
 
-  const results = folders.map(f => {
+  const results = folders.map((f: any) => {
     let exists = false;
     let writable = false;
     let error = null;

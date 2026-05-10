@@ -6,7 +6,7 @@ export async function GET() {
     const db = await getDb();
     const settingsRows = await db.all('SELECT * FROM settings');
     const settings: any = {};
-    settingsRows.forEach(row => {
+    settingsRows.forEach((row: any) => {
       settings[row.key] = JSON.parse(row.value);
     });
     return NextResponse.json(settings);
