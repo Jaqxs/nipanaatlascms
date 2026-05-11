@@ -12,10 +12,16 @@ export const getApiUrl = (path: string) => {
   // Strip leading slash from path if present
   const cleanPath = path.startsWith('/') ? path.slice(1) : path;
   
-  // In development, if no API_BASE_URL is set, use relative paths
-  if (!API_BASE_URL) {
+  // SMART ROUTING: If we are on localhost, ALWAYS use relative paths 
+  // to avoid CORS or DNS issues with the production backend.
+  if (typeof window !== 'undefined' && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')) {
     return `/${cleanPath}`;
   }
   
-  return `${API_BASE_URL}/${cleanPath}`;
+  // Fallback to absolute URL if configured
+  if (API_BASE_URL) {
+    return `${API_BASE_URL}/${cleanPath}`;
+  }
+  
+  return `/${cleanPath}`;
 };
