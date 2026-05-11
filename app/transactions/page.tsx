@@ -141,10 +141,10 @@ export default function TransactionsPage() {
   const filtered = (Array.isArray(rows) ? rows : [])
     .filter((r) => inRangeFromShortDate(r.date))
     .filter((r) => type === "All" || r.type === type)
-    .filter((r) => status === "All" || r.status.toLowerCase() === status.toLowerCase())
+    .filter((r) => status === "All" || (r.status || "").toLowerCase() === status.toLowerCase())
     .filter((r) => !search ||
-      r.ref.toLowerCase().includes(search.toLowerCase()) ||
-      r.party.toLowerCase().includes(search.toLowerCase()));
+      (r.ref || "").toLowerCase().includes(search.toLowerCase()) ||
+      (r.party || "").toLowerCase().includes(search.toLowerCase()));
 
   return (
     <div>

@@ -117,7 +117,8 @@ export default function InventoryPage() {  const [tab, setTab] = useState<"batch
 
   const batches = inventoryArray
     .filter((b) => purity === "All" || (purity === "Raw" ? !b.karat : `${b.karat}K` === purity))
-    .filter((b) => location === "All" || b.location === location);;
+    .filter((b) => location === "All" || b.location === location)
+    .filter((b) => !search || (b.batch || "").toLowerCase().includes(search.toLowerCase()));
 
   return (
     <div>

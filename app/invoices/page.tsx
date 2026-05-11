@@ -80,8 +80,8 @@ export default function InvoicesPage() {
     .filter((i) => inRangeFromShortDate(i.issued || i.due))
     .filter((i) => tab === "All" || i.status === tab)
     .filter((i) => !search ||
-      i.no.toLowerCase().includes(search.toLowerCase()) ||
-      i.customer.toLowerCase().includes(search.toLowerCase()));
+      (i.no || "").toLowerCase().includes(search.toLowerCase()) ||
+      (i.customer || "").toLowerCase().includes(search.toLowerCase()));
 
   const totalReceivable = invoiceArray.filter((i) => ["Sent", "Pending", "Overdue"].includes(i.status))
     .reduce((a, b) => a + b.amount, 0);
