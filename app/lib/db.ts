@@ -118,31 +118,27 @@ export async function getDb() {
           }
         }
       } catch (e: any) {
-        console.error("[DATABASE] Backend connection FAILED:");
-        console.error(" - URL:", CLOUD_URL);
-        console.error(" - Error:", e.message || e);
-        if (e.cause) console.error(" - Cause:", e.cause);
-        console.warn("[DATABASE] Falling back to local/memory state.");
+        console.error("[DATABASE] Backend connection FAILED. Trying local JSON fallback.");
+      }
+
+      // LOCAL JSON HYDRATION (Critical fallback for serverless/ephemeral)
+      if (!USE_SQLITE) {
+        const JSON_PATH = DB_PATH.replace('.db', '.json');
+        try {
+          if (fs.existsSync(JSON_PATH)) {
+            const data = fs.readFileSync(JSON_PATH, 'utf8');
+            MEMORY_DB = { ...MEMORY_DB, ...JSON.parse(data) };
+            console.log("[DATABASE] Persistent JSON data loaded.");
+          }
+        } catch (e) {
+          console.warn("[DATABASE] JSON load failed:", e);
+        }
       }
     }
     INITIALIZED = true;
   }
 
-  // 3. ENHANCED PERSISTENCE FALLBACK: JSON STORAGE
   const JSON_PATH = DB_PATH.replace('.db', '.json');
-  
-  const loadFromJson = () => {
-    try {
-      if (fs.existsSync(JSON_PATH)) {
-        const data = fs.readFileSync(JSON_PATH, 'utf8');
-        MEMORY_DB = { ...MEMORY_DB, ...JSON.parse(data) };
-        console.log("[DATABASE] Persistent JSON data loaded.");
-      }
-    } catch (e) {
-      console.warn("[DATABASE] JSON load failed:", e);
-    }
-  };
-
   const saveToJson = () => {
     try {
       fs.writeFileSync(JSON_PATH, JSON.stringify(MEMORY_DB, null, 2));
@@ -150,10 +146,6 @@ export async function getDb() {
       console.warn("[DATABASE] JSON save failed:", e);
     }
   };
-
-  if (!USE_SQLITE) {
-    loadFromJson();
-  }
 
   const syncToCloud = async () => {
     saveToJson(); // Always try local file sync first
