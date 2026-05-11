@@ -94,7 +94,7 @@ export async function getDb() {
   }
 
   // FALLBACK: CLOUD MIRROR EMULATOR
-  return {
+  const mockDb = {
     run: async (sql: string, params: any[]) => {
       const q = sql.toLowerCase();
       if (q.includes('insert into transactions')) MEMORY_DB.transactions.push(params);
@@ -133,10 +133,12 @@ export async function getDb() {
       return [];
     },
     get: async (sql: string, params: any[]) => {
-      const results = await (this as any || {}).all?.(sql) || [];
+      const results = await mockDb.all(sql);
       return results.find((r: any) => r.id === params[0] || r.ref === params[0] || r.no === params[0]) || null;
     }
   };
+
+  return mockDb;
 }
 
 
