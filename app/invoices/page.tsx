@@ -313,19 +313,25 @@ function InvoicePreview({ invoice }: { invoice: Invoice }) {
 }
 
 function NewInvoiceForm({ onSuccess }: { onSuccess: () => void }) {
-  const [customer, setCustomer] = useState("");
-  const [due, setDue] = useState("2026-05-11");
-  const [lines, setLines] = useState([{ desc: "", weight: "", karat: "24", price: "" }]);
+  const [issued, setIssued] = useState(new Date().toISOString().split('T')[0]);
+  const [due, setDue] = useState(new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]);
+  const [lines, setLines] = useState([{ desc: "Refined Gold", weight: "100", karat: "24K", price: "75.50" }]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     const total = lines.reduce((acc, line) => acc + (parseFloat(line.weight) || 0) * (parseFloat(line.price) || 0), 0);
+    
+    // Format date as "May 11" for the legacy short-date parser if needed
+    const dateObj = new Date(issued);
+    const shortIssued = dateObj.toLocaleDateString('en-US', { month: 'short', day: '2-digit' });
+
     try {
       const res = await fetch(getApiUrl('/api/invoices'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           customer,
+          issued: shortIssued,
           due,
           amount: total,
           status: 'Sent'
@@ -342,7 +348,7 @@ function NewInvoiceForm({ onSuccess }: { onSuccess: () => void }) {
       <div className="grid grid-cols-2 gap-4">
         <Field label="Customer"><input className="input" placeholder="Select or create customer" value={customer} onChange={e => setCustomer(e.target.value)} required /></Field>
         <Field label="Customer ID"><input className="input" placeholder="Auto-generated" disabled /></Field>
-        <Field label="Issue date"><input type="date" className="input" defaultValue="2026-05-04" /></Field>
+        <Field label="Issue date"><input type="date" className="input" value={issued} onChange={e => setIssued(e.target.value)} /></Field>
         <Field label="Due date"><input type="date" className="input" value={due} onChange={e => setDue(e.target.value)} /></Field>
       </div>
 

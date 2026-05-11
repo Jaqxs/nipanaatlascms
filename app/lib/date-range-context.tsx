@@ -14,8 +14,8 @@ export const RANGES: Record<RangeId, { id: RangeId; label: string; days: number 
   custom: { id: "custom", label: "Custom Range", days: 365 },
 };
 
-// Demo "today"
-export const TODAY = new Date(2026, 4, 4); // May 4, 2026
+// The system uses a dynamic today's date for real-time reporting
+export const TODAY = new Date(); 
 
 interface Ctx {
   rangeId: RangeId;
