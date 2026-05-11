@@ -109,7 +109,12 @@ export async function getDb() {
     if (process.env.NODE_ENV === 'production' || !USE_SQLITE) {
       try {
         console.log("[DATABASE] Hydrating from backend mirror:", CLOUD_URL);
-        const res = await fetch(CLOUD_URL);
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 5000); // 5s timeout
+
+        const res = await fetch(CLOUD_URL, { signal: controller.signal });
+        clearTimeout(timeoutId);
+
         if (res.ok) {
           const cloudData = await res.json();
           if (cloudData && typeof cloudData === 'object') {
@@ -165,11 +170,16 @@ export async function getDb() {
     saveToJson(); // Always commit to local disk first for immediate persistence
     try {
       console.log("[DATABASE] Syncing to cloud mirror...");
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 8000); // 8s timeout for sync
+
       await fetch(CLOUD_URL, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(MEMORY_DB)
+        body: JSON.stringify(MEMORY_DB),
+        signal: controller.signal
       });
+      clearTimeout(timeoutId);
       console.log("[DATABASE] Cloud mirror updated.");
     } catch (e: any) {
       console.warn("[DATABASE] Cloud sync skipped (offline):", e.message);
