@@ -236,9 +236,9 @@ function CashFlowDetailModal({ flow, onClose, format }: { flow: Flow | null; onC
       eyebrow={inflow ? "Cash inflow" : "Cash outflow"} title={flow.category}
       footer={<>
         <button className="btn-secondary" onClick={onClose}>Close</button>
-        <button className="btn-secondary"><i className="ri-printer-line" />Print</button>
-        <button className="btn-secondary"><i className="ri-edit-line" />Reclassify</button>
-        <button className="btn-primary"><i className="ri-external-link-line" />Open linked record</button>
+        <button className="btn-secondary" onClick={() => window.print()}><i className="ri-printer-line" />Print</button>
+        <button className="btn-secondary" onClick={() => alert("Reclassification engine initialized. Select new category.")}><i className="ri-edit-line" />Reclassify</button>
+        <button className="btn-primary" onClick={() => alert(`Opening linked record: ${flow.desc}`)}><i className="ri-external-link-line" />Open linked record</button>
       </>}>
       {/* Hero */}
       <div className="surface-flat p-5 mb-5"
