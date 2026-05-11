@@ -18,6 +18,7 @@ let MEMORY_DB: any = {
   inventory: [], 
   invoices: [],
   quotations: [],
+  contacts: [],
   settings: []
 };
 let INITIALIZED = false;
@@ -156,6 +157,7 @@ export async function getDb() {
       else if (q.includes('insert into invoices')) MEMORY_DB.invoices.push(params);
       else if (q.includes('insert into quotations')) MEMORY_DB.quotations.push(params);
       else if (q.includes('insert into inventory')) MEMORY_DB.inventory.push(params);
+      else if (q.includes('insert into contacts')) MEMORY_DB.contacts.push(params);
       else if (q.includes('update transactions')) {
         const row = MEMORY_DB.transactions.find((t: any) => t[1] === params[1]);
         if (row) row[6] = params[0];
@@ -178,12 +180,15 @@ export async function getDb() {
         id: d[0], name: d[1], location: d[2], manager: d[3], type: d[4], status: d[5], productionRate: d[6]
       }));
       if (q.includes('from invoices')) return MEMORY_DB.invoices.map((d: any) => ({
-        id: d[0], ref: d[1], date: d[2], customer: d[3], amount: d[4], status: d[5]
+        id: d[0], no: d[1], customer: d[2], issued: d[3], due: d[4], amount: d[5], status: d[6]
       }));
       if (q.includes('from quotations')) return MEMORY_DB.quotations.map((d: any) => ({
         id: d[0], no: d[1], customer: d[2], expires: d[3], amount: d[4], status: d[5], createdAt: d[6]
       }));
-      if (q.includes('from inventory')) return MEMORY_DB.inventory || [];
+      if (q.includes('from inventory')) return MEMORY_DB.inventory.map((d: any) => ({
+        id: d[0], batch: d[1], weight: d[2], karat: d[3], fine: d[4], source: d[5], location: d[6], status: d[7], value: d[8]
+      }));
+      if (q.includes('from contacts')) return MEMORY_DB.contacts || [];
       return [];
     },
     get: async (sql: string, params: any[]) => {
