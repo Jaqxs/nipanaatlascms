@@ -31,6 +31,7 @@ export default function InventoryPage() {  const [tab, setTab] = useState<"batch
 
   const [inventory, setInventory] = useState<Batch[]>([]);
   const [loading, setLoading] = useState(true);
+  const [search, setSearch] = useState("");
   const [formData, setFormData] = useState({
     weight: "",
     karat: "24",
@@ -180,6 +181,15 @@ export default function InventoryPage() {  const [tab, setTab] = useState<"batch
             </div>
             <div className="surface-flat p-1 inline-flex gap-1">
               {LOCATIONS.map((l) => <FilterChip key={l} active={location === l} onClick={() => setLocation(l)}>{l}</FilterChip>)}
+            </div>
+            <div className="ml-auto flex items-center gap-2 px-3 py-1.5 text-sm surface-flat">
+              <i className="ri-search-line text-ink-muted" />
+              <input
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                placeholder="Search batches..."
+                className="bg-transparent outline-none w-56 placeholder:text-ink-faint"
+              />
             </div>
           </>
         )}
