@@ -109,7 +109,7 @@ export default function SitesPage() {
     }
   };
 
-  const handleDelete = async (id: string) => {
+  async function handleDelete(id: string) {
     if (!confirm("Are you sure you want to delete this site?")) return;
     try {
       const res = await fetch(getApiUrl('/api/sites'), {
@@ -123,7 +123,7 @@ export default function SitesPage() {
     } catch (err) {
       alert("Failed to delete site");
     }
-  };
+  }
 
   return (
     <div>

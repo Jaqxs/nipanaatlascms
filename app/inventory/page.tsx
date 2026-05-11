@@ -111,7 +111,7 @@ export default function InventoryPage() {  const [tab, setTab] = useState<"batch
     }
   };
 
-  const handleConfirmAction = async () => {
+  async function handleConfirmAction() {
     if (!confirm) return;
     try {
       const res = await fetch(getApiUrl('/api/inventory'), {
@@ -126,7 +126,7 @@ export default function InventoryPage() {  const [tab, setTab] = useState<"batch
     } catch (err) {
       alert("Error updating inventory");
     }
-  };
+  }
 
   const inventoryArray = Array.isArray(inventory) ? inventory : [];
   const totalWeight = (inventoryArray || []).reduce((a, b) => a + (b?.weight || 0), 0);
