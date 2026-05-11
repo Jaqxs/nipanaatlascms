@@ -1,5 +1,5 @@
 "use client";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { PageHeader, FilterChip } from "../components/PageHeader";
 import { Modal } from "../components/Modal";
 import { Badge } from "../components/Badge";
