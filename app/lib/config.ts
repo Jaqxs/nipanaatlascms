@@ -21,3 +21,12 @@ export const getApiUrl = (path: string) => {
   
   return `/${cleanPath}`;
 };
+
+// Log configuration status on server-side startup
+if (typeof window === 'undefined') {
+  console.log('--------------------------------------------------');
+  console.log('GBMS SYSTEM INITIALIZED');
+  console.log(`DOMAIN: ${FRONTEND_URL}`);
+  console.log(`SYNC HUB: ${API_BASE_URL || 'Using relative paths'}`);
+  console.log('--------------------------------------------------');
+}
