@@ -9,6 +9,7 @@ import { ExportModal } from "../components/ExportModal";
 import { QUOTATIONS } from "../lib/mockData";
 import { useCurrency } from "../lib/currency-context";
 import { getApiUrl } from "../lib/config";
+import { usePersistence } from "../lib/persistence-context";
 
 type Quote = typeof QUOTATIONS[number];
 
@@ -38,14 +39,36 @@ export default function QuotationsPage() {
     fetchQuotations();
   }, []);
 
+  const { backupData, getBackup } = usePersistence();
+  const [isUsingBackup, setIsUsingBackup] = useState(false);
+
   const fetchQuotations = async () => {
     setLoading(true);
     try {
       const res = await fetch(getApiUrl('/api/quotations'));
       const data = await res.json();
-      setQuotations(Array.isArray(data) ? data : []);
+      if (Array.isArray(data) && data.length > 0) {
+        setQuotations(data);
+        backupData('quotations', data);
+        setIsUsingBackup(false);
+      } else {
+        const b = getBackup('quotations');
+        if (b) {
+          setQuotations(b);
+          setIsUsingBackup(true);
+        } else {
+          setQuotations([]);
+        }
+      }
     } catch (err) {
       console.error("Failed to fetch quotations:", err);
+      const b = getBackup('quotations');
+      if (b) {
+        setQuotations(b);
+        setIsUsingBackup(true);
+      } else {
+        setQuotations([]);
+      }
     } finally {
       setLoading(false);
     }
@@ -129,6 +152,21 @@ export default function QuotationsPage() {
           </>
         }
       />
+
+      {isUsingBackup && (
+        <div className="bg-amber-50 border border-amber-200 p-4 rounded-xl flex items-center gap-4 mb-6">
+          <div className="w-10 h-10 rounded-full bg-amber-100 flex items-center justify-center shrink-0">
+            <i className="ri-shield-check-line text-xl text-amber-700" />
+          </div>
+          <div>
+            <div className="text-sm font-bold text-amber-900">Operating in Safe Mode (Browser Backup)</div>
+            <div className="text-xs text-amber-700">The primary cloud storage is currently offline. You are viewing your last recorded session from this browser.</div>
+          </div>
+          <button onClick={fetchQuotations} className="ml-auto btn-secondary py-1.5 text-xs">
+            <i className="ri-refresh-line" /> Try reconnecting
+          </button>
+        </div>
+      )}
 
       <div className="grid grid-cols-2 md:grid-cols-5 gap-3 mb-6">
         {["DRAFT", "PENDING", "APPROVED", "ACCEPTED", "EXPIRED"].map((s) => (
