@@ -228,22 +228,31 @@ export async function getDb() {
     },
     all: async (sql: string) => {
       const q = sql.toLowerCase();
-      if (q.includes('from transactions')) return MEMORY_DB.transactions.map((d: any) => ({
+      
+      const mapData = (data: any[], mapper: (d: any) => any) => {
+        return data.map(d => {
+          if (Array.isArray(d)) return mapper(d);
+          // If it's already an object, return it as is but ensure property names match expected
+          return { ...d };
+        });
+      };
+
+      if (q.includes('from transactions')) return mapData(MEMORY_DB.transactions, (d: any) => ({
         id: d[0], ref: d[1], date: d[2], type: d[3], party: d[4], amount: d[5], status: d[6], description: d[7], submittedBy: d[8]
       }));
-      if (q.includes('from sites')) return MEMORY_DB.sites.map((d: any) => ({
+      if (q.includes('from sites')) return mapData(MEMORY_DB.sites, (d: any) => ({
         id: d[0], name: d[1], location: d[2], manager: d[3], type: d[4], status: d[5], productionRate: d[6]
       }));
-      if (q.includes('from invoices')) return MEMORY_DB.invoices.map((d: any) => ({
+      if (q.includes('from invoices')) return mapData(MEMORY_DB.invoices, (d: any) => ({
         id: d[0], no: d[1], customer: d[2], issued: d[3], due: d[4], amount: d[5], status: d[6]
       }));
-      if (q.includes('from quotations')) return MEMORY_DB.quotations.map((d: any) => ({
+      if (q.includes('from quotations')) return mapData(MEMORY_DB.quotations, (d: any) => ({
         id: d[0], no: d[1], customer: d[2], expires: d[3], amount: d[4], status: d[5], createdAt: d[6]
       }));
-      if (q.includes('from inventory')) return MEMORY_DB.inventory.map((d: any) => ({
+      if (q.includes('from inventory')) return mapData(MEMORY_DB.inventory, (d: any) => ({
         id: d[0], batch: d[1], weight: d[2], karat: d[3], fine: d[4], source: d[5], location: d[6], status: d[7], value: d[8]
       }));
-      if (q.includes('from contacts')) return MEMORY_DB.contacts.map((d: any) => ({
+      if (q.includes('from contacts')) return mapData(MEMORY_DB.contacts, (d: any) => ({
         id: d[0], name: d[1], email: d[2], phone: d[3], location: d[4], status: d[5], type: d[6], joined: d[7], totalPurchases: d[8], outstanding: d[9], lastTx: d[10], totalSupplied_g: d[11], totalPaid: d[12]
       }));
       return [];
