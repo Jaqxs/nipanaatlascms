@@ -43,12 +43,33 @@ export async function getDb() {
         
         // Create tables if missing
         await db.exec(`
-          CREATE TABLE IF NOT EXISTS transactions (id TEXT, ref TEXT, date TEXT, type TEXT, party TEXT, amount REAL, status TEXT, description TEXT, submittedBy TEXT);
-          CREATE TABLE IF NOT EXISTS sites (id TEXT, name TEXT, location TEXT, manager TEXT, type TEXT, status TEXT, productionRate REAL);
-          CREATE TABLE IF NOT EXISTS inventory (id TEXT, item TEXT, category TEXT, weight REAL, value REAL, status TEXT);
-          CREATE TABLE IF NOT EXISTS invoices (id TEXT, ref TEXT, date TEXT, customer TEXT, amount REAL, status TEXT);
-          CREATE TABLE IF NOT EXISTS quotations (id TEXT, no TEXT, customer TEXT, expires TEXT, amount REAL, status TEXT, createdAt TEXT);
+          CREATE TABLE IF NOT EXISTS transactions (
+            id TEXT PRIMARY KEY, ref TEXT, date TEXT, type TEXT, party TEXT, 
+            amount REAL, status TEXT, description TEXT, submittedBy TEXT
+          );
+          CREATE TABLE IF NOT EXISTS sites (
+            id TEXT PRIMARY KEY, name TEXT, location TEXT, manager TEXT, 
+            type TEXT, status TEXT, productionRate REAL
+          );
+          CREATE TABLE IF NOT EXISTS inventory (
+            id TEXT PRIMARY KEY, batch TEXT, weight REAL, karat TEXT, 
+            fine REAL, source TEXT, location TEXT, status TEXT, value REAL
+          );
+          CREATE TABLE IF NOT EXISTS invoices (
+            id TEXT PRIMARY KEY, no TEXT, customer TEXT, issued TEXT, 
+            due TEXT, amount REAL, status TEXT
+          );
+          CREATE TABLE IF NOT EXISTS quotations (
+            id TEXT PRIMARY KEY, no TEXT, customer TEXT, expires TEXT, 
+            amount REAL, status TEXT, createdAt TEXT
+          );
           CREATE TABLE IF NOT EXISTS settings (key TEXT PRIMARY KEY, value TEXT);
+          CREATE TABLE IF NOT EXISTS contacts (
+            id TEXT PRIMARY KEY, name TEXT, email TEXT, phone TEXT, 
+            location TEXT, status TEXT, type TEXT, joined TEXT, 
+            totalPurchases REAL DEFAULT 0, outstanding REAL DEFAULT 0,
+            lastTx TEXT, totalSupplied_g REAL DEFAULT 0, totalPaid REAL DEFAULT 0
+          );
         `);
         
         USE_SQLITE = true;

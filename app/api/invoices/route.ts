@@ -1,10 +1,11 @@
 import { NextResponse } from 'next/server';
 import { getDb } from '@/app/lib/db';
+import crypto from 'crypto';
 
 export async function GET() {
   try {
     const db = await getDb();
-    const invoices = await db.all('SELECT * FROM invoices ORDER BY createdAt DESC');
+    const invoices = await db.all('SELECT * FROM invoices ORDER BY id DESC');
     return NextResponse.json(invoices);
   } catch (error) {
     return NextResponse.json({ error: 'Failed to fetch invoices' }, { status: 500 });
@@ -17,11 +18,12 @@ export async function POST(request: Request) {
     const db = await getDb();
     const id = crypto.randomUUID();
     const no = body.no || `INV-${Date.now()}`;
+    const issued = body.issued || new Date().toLocaleDateString('en-US', { month: 'short', day: '2-digit' });
 
     await db.run(
-      `INSERT INTO invoices (id, no, customer, due, amount, status)
-       VALUES (?, ?, ?, ?, ?, ?)`,
-      [id, no, body.customer, body.due, body.amount, 'pending']
+      `INSERT INTO invoices (id, no, customer, issued, due, amount, status)
+       VALUES (?, ?, ?, ?, ?, ?, ?)`,
+      [id, no, body.customer, issued, body.due, body.amount, body.status || 'Sent']
     );
 
     return NextResponse.json({ success: true, id });

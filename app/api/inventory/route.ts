@@ -1,10 +1,11 @@
 import { NextResponse } from 'next/server';
 import { getDb } from '@/app/lib/db';
+import crypto from 'crypto';
 
 export async function GET() {
   try {
     const db = await getDb();
-    const inventory = await db.all('SELECT * FROM inventory ORDER BY createdAt DESC');
+    const inventory = await db.all('SELECT * FROM inventory ORDER BY id DESC');
     return NextResponse.json(inventory);
   } catch (error) {
     return NextResponse.json({ error: 'Failed to fetch inventory' }, { status: 500 });

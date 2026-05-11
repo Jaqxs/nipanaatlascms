@@ -230,7 +230,7 @@ export default function TransactionsPage() {
                 <td className="text-right" onClick={(e) => e.stopPropagation()}>
                   <RowActionsMenu actions={[
                     { label: "View detail", icon: "ri-eye-line", onClick: () => setDetail(t) },
-                    { label: "Edit", icon: "ri-edit-line", onClick: () => alert(`Edit ${t.ref}`) },
+                    { label: "Print Receipt", icon: "ri-printer-line", onClick: () => { setDetail(t); setTimeout(() => window.print(), 100); } },
                     { label: "Duplicate", icon: "ri-file-copy-line", onClick: () => alert(`Duplicate ${t.ref}`) },
                     ...(t.status === "pending" ? [
                       { label: "Approve", icon: "ri-check-line", onClick: () => setConfirming({ tx: t, action: "approve" }) },

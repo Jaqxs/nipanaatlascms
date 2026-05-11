@@ -279,3 +279,30 @@ html, body {
 }
 @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
 @keyframes slideUp { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+
+@media print {
+  body * {
+    visibility: hidden;
+  }
+  .modal-overlay, .modal-overlay * {
+    visibility: visible;
+  }
+  .modal-overlay {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 100%;
+    padding: 0;
+    background: white;
+    backdrop-filter: none;
+  }
+  .modal-panel {
+    box-shadow: none;
+    border: none;
+    max-height: none;
+    overflow: visible;
+  }
+  .modal-header i, .modal-footer button {
+    display: none !important;
+  }
+}

@@ -41,8 +41,8 @@ export function TransactionDetailModal({ tx, onClose }: { tx: TransactionLike | 
       title={tx.ref}
       footer={<>
         <button className="btn-secondary" onClick={onClose}>Close</button>
-        <button className="btn-secondary"><i className="ri-printer-line" />Print</button>
-        <button className="btn-secondary"><i className="ri-download-line" />Receipt</button>
+        <button className="btn-secondary" onClick={() => window.print()}><i className="ri-printer-line" />Print</button>
+        <button className="btn-primary" onClick={() => window.print()}><i className="ri-download-line" />Receipt</button>
         {tx.status === "pending" && <button className="btn-primary"><i className="ri-check-line" />Approve</button>}
       </>}>
       {/* Hero */}

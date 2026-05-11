@@ -176,7 +176,7 @@ export default function InvoicesPage() {
                 <td className="text-right" onClick={(e) => e.stopPropagation()}>
                   <RowActionsMenu actions={[
                     { label: "View invoice", icon: "ri-eye-line", onClick: () => setPreview(i) },
-                    { label: "Download PDF", icon: "ri-download-line", onClick: () => alert(`Download ${i.no}`) },
+                    { label: "Print / Download", icon: "ri-printer-line", onClick: () => { setPreview(i); setTimeout(() => window.print(), 100); } },
                     { label: "Email to customer", icon: "ri-mail-send-line", onClick: () => alert(`Email ${i.customer}`) },
                     ...(i.status === "Overdue" || i.status === "Sent" || i.status === "pending" ? [
                       { label: "Send reminder", icon: "ri-notification-line", onClick: () => alert("Reminder sent") },
@@ -199,8 +199,8 @@ export default function InvoicesPage() {
         footer={
           <>
             <button className="btn-secondary" onClick={() => setPreview(null)}>Close</button>
-            <button className="btn-secondary"><i className="ri-mail-send-line" />Email to customer</button>
-            <button className="btn-primary"><i className="ri-download-line" />Download PDF</button>
+            <button className="btn-secondary" onClick={() => window.print()}><i className="ri-printer-line" /> Print Invoice</button>
+            <button className="btn-primary" onClick={() => window.print()}><i className="ri-download-line" /> Download PDF</button>
           </>
         }>
         {preview && <InvoicePreview invoice={preview} />}
