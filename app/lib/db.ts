@@ -25,8 +25,10 @@ const DB_PATH = process.env.NODE_ENV === 'production'
   ? '/app/data/gbms.db' 
   : path.join(process.cwd(), 'data', 'gbms.db');
 
-// THE CLOUD MIRROR: Official GBMS Backend API (configured via env or fallback)
-const CLOUD_URL = (process.env.NEXT_PUBLIC_API_URL || 'https://backend.nipanaatlas.co.tz') + '/api/storage'; 
+// THE CLOUD MIRROR: Official GBMS Backend
+export const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'https://backend.nipanaatlas.co.tz';
+export const FRONTEND_URL = process.env.NEXT_PUBLIC_FRONTEND_URL || 'https://system.nipanaatlas.co.tz';
+const CLOUD_URL = API_BASE_URL + '/api/storage'; 
 
 export async function getDb() {
   // 1. ATTEMPT SQLITE INITIALIZATION
@@ -137,10 +139,12 @@ export async function getDb() {
           const data = await res.json();
           // Deep merge into MEMORY_DB
           Object.assign(MEMORY_DB, data);
-          console.log("[DATABASE] Cloud data hydration successful.");
+          console.log("[DATABASE] SUCCESS: Cloud data hydration successful from " + CLOUD_URL);
+        } else {
+          console.warn("[DATABASE] FAIL: Cloud server returned " + res.status);
         }
-      } catch (e) {
-        console.warn("[DATABASE] Cloud hydration failed, trying local JSON fallback.");
+      } catch (e: any) {
+        console.warn("[DATABASE] ERROR: Cloud hydration failed (" + e.message + "). This usually means the backend URL is unreachable.");
       }
       
       const JSON_PATH = DB_PATH.replace('.db', '.json');
