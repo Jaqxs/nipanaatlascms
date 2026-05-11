@@ -47,8 +47,10 @@ export function SalesVsExpensesChart() {
 export function ProfitTrendChart({ className = "h-[200px]" }: { className?: string } = {}) {
   const forecastStart = PROFIT_TREND.findIndex((p) => p.forecast !== null);
   const todayDay = forecastStart > 0 ? PROFIT_TREND[forecastStart - 1].day : null;
-  const peak = PROFIT_TREND.reduce((a, b) => (b.profit > a.profit ? b : a), PROFIT_TREND[0]);
-  const last = PROFIT_TREND[PROFIT_TREND.length - 1];
+  const peak = PROFIT_TREND.length > 0 
+    ? PROFIT_TREND.reduce((a, b) => (b.profit > (a?.profit || 0) ? b : a), PROFIT_TREND[0])
+    : null;
+  const last = PROFIT_TREND.length > 0 ? PROFIT_TREND[PROFIT_TREND.length - 1] : null;
 
   return (
     <div className={`${className} w-full relative`}>
@@ -78,7 +80,7 @@ export function ProfitTrendChart({ className = "h-[200px]" }: { className?: stri
 
           <CartesianGrid stroke={gridStroke} strokeDasharray="2 4" vertical={false} />
 
-          {todayDay !== null && (
+          {todayDay !== null && last && (
             <ReferenceArea x1={todayDay} x2={last.day} fill="#fdf6e4" fillOpacity={0.55} stroke="#f4e2b3" strokeDasharray="3 3" />
           )}
 
@@ -97,11 +99,13 @@ export function ProfitTrendChart({ className = "h-[200px]" }: { className?: stri
             activeDot={{ r: 5, fill: "#b8893d", stroke: "#fff", strokeWidth: 2 }}
             name="AI Forecast" animationDuration={1100} />
 
-          <ReferenceLine
-            x={peak.day}
-            stroke="#7a8c6b"
-            strokeDasharray="3 3"
-          />
+          {peak && peak.day && (
+            <ReferenceLine
+              x={peak.day}
+              stroke="#7a8c6b"
+              strokeDasharray="3 3"
+            />
+          )}
 
           {todayDay !== null && (
             <ReferenceLine
