@@ -125,7 +125,8 @@ export default function SitesPage() {
     }
   };
 
-  return <div>
+  return (
+    <div>
       <PageHeader
         title="Business Sites"
         description="Manage mining locations, processing centers, and offices"
@@ -242,7 +243,8 @@ export default function SitesPage() {
           </form>
         )}
       </Modal>
-    </div>;
+    </div>
+  );
 }
 
 function Field({ label, children }: { label: string; children: React.ReactNode }) {

@@ -142,7 +142,8 @@ export default function InventoryPage() {  const [tab, setTab] = useState<"batch
     .filter((b) => !b ? false : (location === "All" || b.location === location))
     .filter((b) => !b ? false : (!search || (b.batch || "").toLowerCase().includes(search.toLowerCase())));
 
-  return <div>
+  return (
+    <div>
       <PageHeader
         title="Inventory"
         description="Batches across vaults and transit, auto-valued at the active gold price."
