@@ -313,6 +313,7 @@ function InvoicePreview({ invoice }: { invoice: Invoice }) {
 }
 
 function NewInvoiceForm({ onSuccess }: { onSuccess: () => void }) {
+  const [customer, setCustomer] = useState("");
   const [issued, setIssued] = useState(new Date().toISOString().split('T')[0]);
   const [due, setDue] = useState(new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]);
   const [lines, setLines] = useState([{ desc: "Refined Gold", weight: "100", karat: "24K", price: "75.50" }]);
