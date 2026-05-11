@@ -24,8 +24,9 @@ export function Badge({ tone = "ink", children, dot }: { tone?: Tone; children: 
 }
 
 export function statusToTone(status: string): Tone {
+  if (!status) return "ink";
   const s = status.toLowerCase();
-  if (["paid", "confirmed", "approved", "accepted", "available"].includes(s)) return "sage";
+  if (["paid", "confirmed", "approved", "accepted", "available", "active"].includes(s)) return "sage";
   if (["pending", "sent", "draft", "processing", "reserved"].includes(s)) return "amber";
   if (["overdue"].includes(s)) return "rose";
   if (["rejected", "expired", "cancelled"].includes(s)) return "terracotta";
