@@ -6,19 +6,31 @@ import path from 'path';
 const IS_CONTAINER = fs.existsSync('/app/data');
 const STORAGE_PATH = IS_CONTAINER ? '/app/data/gbms.json' : path.join(process.cwd(), 'gbms.json');
 
+const corsHeaders = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
+  'Access-Control-Allow-Headers': 'Content-Type',
+};
+
+export async function OPTIONS() {
+  return NextResponse.json({}, { headers: corsHeaders });
+}
+
 export async function GET() {
   console.log("[STORAGE_API] Incoming fetch request for global state...");
   try {
+    let responseData = {};
     if (fs.existsSync(STORAGE_PATH)) {
       const data = fs.readFileSync(STORAGE_PATH, 'utf8');
+      responseData = JSON.parse(data);
       console.log("[STORAGE_API] State found and served.");
-      return NextResponse.json(JSON.parse(data));
+    } else {
+      console.log("[STORAGE_API] No state file found. Serving empty.");
     }
-    console.log("[STORAGE_API] No state file found. Serving empty.");
-    return NextResponse.json({});
+    return NextResponse.json(responseData, { headers: corsHeaders });
   } catch (error) {
     console.error("[STORAGE_API] Read error:", error);
-    return NextResponse.json({ error: "Failed to read storage" }, { status: 500 });
+    return NextResponse.json({ error: "Failed to read storage" }, { status: 500, headers: corsHeaders });
   }
 }
 
@@ -27,16 +39,16 @@ export async function POST(req: NextRequest) {
   try {
     const data = await req.json();
     if (!data || typeof data !== 'object') {
-      return NextResponse.json({ error: "Invalid data" }, { status: 400 });
+      return NextResponse.json({ error: "Invalid data" }, { status: 400, headers: corsHeaders });
     }
     
     // Write to persistent disk
     fs.writeFileSync(STORAGE_PATH, JSON.stringify(data, null, 2));
     console.log("[STORAGE_API] Global state updated and persisted to disk.");
     
-    return NextResponse.json({ success: true });
+    return NextResponse.json({ success: true }, { headers: corsHeaders });
   } catch (error) {
     console.error("[STORAGE_API] Save failed:", error);
-    return NextResponse.json({ error: "Failed to save storage" }, { status: 500 });
+    return NextResponse.json({ error: "Failed to save storage" }, { status: 500, headers: corsHeaders });
   }
 }

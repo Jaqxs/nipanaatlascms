@@ -12,15 +12,11 @@ export const getApiUrl = (path: string) => {
   // Strip leading slash from path if present
   const cleanPath = path.startsWith('/') ? path.slice(1) : path;
   
-  // SMART ROUTING: If we are on localhost, ALWAYS use relative paths 
-  // to avoid CORS or DNS issues with the production backend.
-  if (typeof window !== 'undefined' && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')) {
-    return `/${cleanPath}`;
-  }
-  
-  // Fallback to absolute URL if configured
+  // If API_BASE_URL is configured, use it for ALL environments
+  // This ensures local dev can sync with the cloud hub.
   if (API_BASE_URL) {
-    return `${API_BASE_URL}/${cleanPath}`;
+    const baseUrl = API_BASE_URL.endsWith('/') ? API_BASE_URL.slice(0, -1) : API_BASE_URL;
+    return `${baseUrl}/${cleanPath}`;
   }
   
   return `/${cleanPath}`;
