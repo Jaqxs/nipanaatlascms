@@ -8,6 +8,9 @@ import { CashFlowWaterfall } from "../components/Charts";
 import { useCurrency } from "../lib/currency-context";
 import { useDateRange } from "../lib/date-range-context";
 
+import { getApiUrl } from "../lib/config";
+import { usePersistence } from "../lib/persistence-context";
+
 const SUMMARY = [
   { label: "Gross Revenue", value: 364_900, tone: "ink" },
   { label: "Total COGS", value: 198_300, tone: "ink" },
@@ -21,16 +24,6 @@ const SUMMARY = [
 
 interface Flow { date: string; type: "in" | "out"; category: string; desc: string; amount: number; }
 
-const FLOWS: Flow[] = [
-  { date: "May 04", type: "in", category: "Gold sale proceeds", desc: "Mwanza Refinery Ltd. · INV-482", amount: 18_400 },
-  { date: "May 03", type: "out", category: "Gold purchase", desc: "Geita Cooperative", amount: 22_800 },
-  { date: "May 03", type: "out", category: "Logistics & Security", desc: "Armoured Transit · DSM", amount: 940 },
-  { date: "May 02", type: "in", category: "Investor capital", desc: "Amir K. — Round 2 tranche", amount: 50_000 },
-  { date: "May 02", type: "in", category: "Gold sale proceeds", desc: "Patel Jewellers", amount: 9_650 },
-  { date: "May 01", type: "out", category: "Staff salaries", desc: "April payroll · 12 staff", amount: 14_400 },
-  { date: "Apr 30", type: "out", category: "Operational", desc: "Office rent — May", amount: 2_800 },
-];
-
 export default function CashFlowPage() {
   const [filter, setFilter] = useState<"all" | "in" | "out">("all");
   const [detail, setDetail] = useState<Flow | null>(null);
@@ -40,6 +33,8 @@ export default function CashFlowPage() {
   const { inRangeFromShortDate, label: rangeLabel } = useDateRange();
   const [transactions, setTransactions] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const { backupData, getBackup } = usePersistence();
+  const [isUsingBackup, setIsUsingBackup] = useState(false);
 
   useEffect(() => {
     fetchTransactions();
@@ -48,11 +43,30 @@ export default function CashFlowPage() {
   const fetchTransactions = async () => {
     setLoading(true);
     try {
-      const res = await fetch('/api/transactions');
+      const res = await fetch(getApiUrl('/api/transactions'));
       const data = await res.json();
-      setTransactions(Array.isArray(data) ? data : []);
+      if (Array.isArray(data) && data.length > 0) {
+        setTransactions(data);
+        backupData('transactions', data);
+        setIsUsingBackup(false);
+      } else {
+        const b = getBackup('transactions');
+        if (b) {
+          setTransactions(b);
+          setIsUsingBackup(true);
+        } else {
+          setTransactions([]);
+        }
+      }
     } catch (err) {
       console.error("Failed to fetch transactions:", err);
+      const b = getBackup('transactions');
+      if (b) {
+        setTransactions(b);
+        setIsUsingBackup(true);
+      } else {
+        setTransactions([]);
+      }
     } finally {
       setLoading(false);
     }
@@ -132,6 +146,21 @@ export default function CashFlowPage() {
           </>
         }
       />
+
+      {isUsingBackup && (
+        <div className="bg-amber-50 border border-amber-200 p-4 rounded-xl flex items-center gap-4 mb-6">
+          <div className="w-10 h-10 rounded-full bg-amber-100 flex items-center justify-center shrink-0">
+            <i className="ri-shield-check-line text-xl text-amber-700" />
+          </div>
+          <div>
+            <div className="text-sm font-bold text-amber-900">Operating in Safe Mode (Browser Backup)</div>
+            <div className="text-xs text-amber-700">The primary cloud storage is currently offline. You are viewing your last recorded session from this browser.</div>
+          </div>
+          <button onClick={fetchTransactions} className="ml-auto btn-secondary py-1.5 text-xs">
+            <i className="ri-refresh-line" /> Try reconnecting
+          </button>
+        </div>
+      )}
 
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
         {dynamicSummary.map((s) => (

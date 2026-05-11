@@ -6,6 +6,8 @@ import { Modal } from "../components/Modal";
 import { RowActionsMenu } from "../components/RowActionsMenu";
 import { getApiUrl } from "../lib/config";
 
+import { usePersistence } from "../lib/persistence-context";
+
 interface Site {
   id: string;
   name: string;
@@ -19,6 +21,8 @@ interface Site {
 export default function SitesPage() {
   const [sites, setSites] = useState<Site[]>([]);
   const [loading, setLoading] = useState(true);
+  const { backupData, getBackup } = usePersistence();
+  const [isUsingBackup, setIsUsingBackup] = useState(false);
   const [editing, setEditing] = useState<Site | null>(null);
   const [creating, setCreating] = useState(false);
   const [formData, setFormData] = useState({
@@ -38,9 +42,28 @@ export default function SitesPage() {
     try {
       const res = await fetch(getApiUrl('/api/sites'));
       const data = await res.json();
-      setSites(Array.isArray(data) ? data : []);
+      if (Array.isArray(data) && data.length > 0) {
+        setSites(data);
+        backupData('sites', data);
+        setIsUsingBackup(false);
+      } else {
+        const b = getBackup('sites');
+        if (b) {
+          setSites(b);
+          setIsUsingBackup(true);
+        } else {
+          setSites([]);
+        }
+      }
     } catch (err) {
       console.error("Failed to fetch sites:", err);
+      const b = getBackup('sites');
+      if (b) {
+        setSites(b);
+        setIsUsingBackup(true);
+      } else {
+        setSites([]);
+      }
     } finally {
       setLoading(false);
     }
@@ -113,6 +136,21 @@ export default function SitesPage() {
           </button>
         }
       />
+
+      {isUsingBackup && (
+        <div className="bg-amber-50 border border-amber-200 p-4 rounded-xl flex items-center gap-4 mb-6">
+          <div className="w-10 h-10 rounded-full bg-amber-100 flex items-center justify-center shrink-0">
+            <i className="ri-shield-check-line text-xl text-amber-700" />
+          </div>
+          <div>
+            <div className="text-sm font-bold text-amber-900">Operating in Safe Mode (Browser Backup)</div>
+            <div className="text-xs text-amber-700">The primary cloud storage is currently offline. You are viewing your last recorded session from this browser.</div>
+          </div>
+          <button onClick={fetchSites} className="ml-auto btn-secondary py-1.5 text-xs">
+            <i className="ri-refresh-line" /> Try reconnecting
+          </button>
+        </div>
+      )}
 
       <div className="surface mt-6">
         <table className="ledger">

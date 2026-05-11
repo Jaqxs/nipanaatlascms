@@ -10,6 +10,7 @@ import { InventoryAreaChart, StockByPurityChart } from "../components/Charts";
 import { INVENTORY_BATCHES, fmtWeight, GOLD_PRICE } from "../lib/mockData";
 import { useCurrency } from "../lib/currency-context";
 import { getApiUrl } from "../lib/config";
+import { usePersistence } from "../lib/persistence-context";
 
 type Batch = typeof INVENTORY_BATCHES[number];
 
@@ -28,6 +29,8 @@ export default function InventoryPage() {  const [tab, setTab] = useState<"batch
   const [confirm, setConfirm] = useState<{ batch: Batch; action: string } | null>(null);
   const [exportOpen, setExportOpen] = useState(false);
   const { format, formatUSD } = useCurrency();
+  const { backupData, getBackup } = usePersistence();
+  const [isUsingBackup, setIsUsingBackup] = useState(false);
 
   const [inventory, setInventory] = useState<Batch[]>([]);
   const [loading, setLoading] = useState(true);
@@ -54,10 +57,28 @@ export default function InventoryPage() {  const [tab, setTab] = useState<"batch
     try {
       const res = await fetch(getApiUrl('/api/inventory'));
       const data = await res.json();
-      setInventory(Array.isArray(data) ? data : []);
+      if (Array.isArray(data) && data.length > 0) {
+        setInventory(data);
+        backupData('inventory', data);
+        setIsUsingBackup(false);
+      } else {
+        const b = getBackup('inventory');
+        if (b) {
+          setInventory(b);
+          setIsUsingBackup(true);
+        } else {
+          setInventory([]);
+        }
+      }
     } catch (err) {
       console.error("Failed to fetch inventory:", err);
-      setInventory([]);
+      const b = getBackup('inventory');
+      if (b) {
+        setInventory(b);
+        setIsUsingBackup(true);
+      } else {
+        setInventory([]);
+      }
     } finally {
       setLoading(false);
     }
@@ -137,6 +158,21 @@ export default function InventoryPage() {  const [tab, setTab] = useState<"batch
           </>
         }
       />
+
+      {isUsingBackup && (
+        <div className="bg-amber-50 border border-amber-200 p-4 rounded-xl flex items-center gap-4 mb-6">
+          <div className="w-10 h-10 rounded-full bg-amber-100 flex items-center justify-center shrink-0">
+            <i className="ri-shield-check-line text-xl text-amber-700" />
+          </div>
+          <div>
+            <div className="text-sm font-bold text-amber-900">Operating in Safe Mode (Browser Backup)</div>
+            <div className="text-xs text-amber-700">The primary cloud storage is currently offline. You are viewing your last recorded session from this browser.</div>
+          </div>
+          <button onClick={fetchInventory} className="ml-auto btn-secondary py-1.5 text-xs">
+            <i className="ri-refresh-line" /> Try reconnecting
+          </button>
+        </div>
+      )}
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
         <div className="surface p-5">

@@ -5,6 +5,8 @@ import { Modal } from "../components/Modal";
 import { Badge } from "../components/Badge";
 import { RowActionsMenu } from "../components/RowActionsMenu";
 import { MonthlyRevenueProfitChart, ReportRunsDonut } from "../components/Charts";
+import { getApiUrl } from "../lib/config";
+import { usePersistence } from "../lib/persistence-context";
 
 const REPORTS = [
   { name: "Profit & Loss Statement", category: "Financial", desc: "Revenue, COGS, gross profit, operating expenses, net profit", lastRun: "May 01, 06:00", schedule: "Monthly" },
@@ -35,21 +37,40 @@ export default function ReportsPage() {
   const [generating, setGenerating] = useState<string | null>(null);
   const [stats, setStats] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+  const { backupData, getBackup } = usePersistence();
+  const [isUsingBackup, setIsUsingBackup] = useState(false);
 
   const filtered = cat === "All" ? REPORTS : REPORTS.filter((r) => r.category === cat);
 
-  useEffect(() => {
-    const fetchStats = async () => {
-      try {
-        const res = await fetch('/api/reports/stats');
-        const data = await res.json();
+  const fetchStats = async () => {
+    setLoading(true);
+    try {
+      const res = await fetch(getApiUrl('/api/reports/stats'));
+      const data = await res.json();
+      if (data && !data.error) {
         setStats(data);
-      } catch (err) {
-        console.error("Failed to fetch report stats:", err);
-      } finally {
-        setLoading(false);
+        backupData('report_stats', data);
+        setIsUsingBackup(false);
+      } else {
+        const b = getBackup('report_stats');
+        if (b) {
+          setStats(b);
+          setIsUsingBackup(true);
+        }
       }
-    };
+    } catch (err) {
+      console.error("Failed to fetch report stats:", err);
+      const b = getBackup('report_stats');
+      if (b) {
+        setStats(b);
+        setIsUsingBackup(true);
+      }
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
     fetchStats();
   }, []);
 
@@ -79,6 +100,21 @@ export default function ReportsPage() {
           </div>
         }
       />
+
+      {isUsingBackup && (
+        <div className="bg-amber-50 border border-amber-200 p-4 rounded-xl flex items-center gap-4 mb-6">
+          <div className="w-10 h-10 rounded-full bg-amber-100 flex items-center justify-center shrink-0">
+            <i className="ri-shield-check-line text-xl text-amber-700" />
+          </div>
+          <div>
+            <div className="text-sm font-bold text-amber-900">Operating in Safe Mode (Browser Backup)</div>
+            <div className="text-xs text-amber-700">The primary cloud storage is currently offline. You are viewing your last recorded session from this browser.</div>
+          </div>
+          <button onClick={fetchStats} className="ml-auto btn-secondary py-1.5 text-xs">
+            <i className="ri-refresh-line" /> Try reconnecting
+          </button>
+        </div>
+      )}
 
       {/* Top metrics */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
