@@ -1,32 +1,29 @@
+import sqlite3_lib from 'sqlite3';
+import { open as open_db } from 'sqlite';
 import fs from 'fs';
 import path from 'path';
 
-// Native modules will be loaded dynamically to avoid crashing the server if binaries are missing
-let sqlite3: any;
-let open: any;
+let sqlite3: any = sqlite3_lib;
+let open: any = open_db;
 
-/**
- * GBMS HYBRID-CLOUD DATABASE ENGINE
- * ---------------------------------
- * Priority 1: Local SQLite (Fast, Real-time)
- * Priority 2: Cloud Mirror (Persistent, Global)
- */
+let DB_INSTANCE: any = null;
+let INITIALIZED = false;
+let USE_SQLITE = true;
 
-let MEMORY_DB: any = { 
-  transactions: [], 
-  sites: [], 
-  inventory: [], 
+// Shared In-Memory Mirror (for when SQLite fails or for rapid UI response)
+const MEMORY_DB: any = {
+  transactions: [],
+  sites: [],
+  inventory: [],
   invoices: [],
   quotations: [],
   contacts: [],
-  settings: []
+  settings: {}
 };
-let INITIALIZED = false;
-let USE_SQLITE = false;
 
-// Detect if we are in a container or local
-const IS_CONTAINER = fs.existsSync('/app/data');
-const DB_PATH = IS_CONTAINER ? '/app/data/gbms.db' : path.join(process.cwd(), 'gbms.db');
+const DB_PATH = process.env.NODE_ENV === 'production' 
+  ? '/app/data/gbms.db' 
+  : path.join(process.cwd(), 'data', 'gbms.db');
 
 // THE CLOUD MIRROR: Official GBMS Backend API (configured via env or fallback)
 const CLOUD_URL = (process.env.NEXT_PUBLIC_API_URL || 'https://backend.nipanaatlas.co.tz') + '/api/storage'; 
@@ -52,13 +49,19 @@ export async function getDb() {
           db = await open({ filename: altPath, driver: sqlite3.Database });
         } catch (e2: any) {
           console.warn(`[DATABASE] Tier 2 Fail:`, e2.message);
-          // TIER 3: System Tmp (Guaranteed Writable)
-          const tmpPath = '/tmp/gbms.db';
-          db = await open({ filename: tmpPath, driver: sqlite3.Database });
-          console.log("[DATABASE] Tier 3 ACTIVE: Using /tmp for persistence.");
+          try {
+            // TIER 3: System Tmp (Guaranteed Writable)
+            const tmpPath = '/tmp/gbms.db';
+            db = await open({ filename: tmpPath, driver: sqlite3.Database });
+            console.log("[DATABASE] Tier 3 ACTIVE: Using /tmp for persistence.");
+          } catch (e3: any) {
+            console.error("[DATABASE] All SQLite tiers failed.");
+            USE_SQLITE = false;
+          }
         }
       }
         
+      if (db) {
         // Create tables if missing
         await db.exec(`
           CREATE TABLE IF NOT EXISTS transactions (
@@ -115,8 +118,9 @@ export async function getDb() {
         }
       }
     } catch (e: any) {
-      console.warn("[DATABASE] Local Database engine unavailable (Binary missing or path inaccessible). Falling back to Cloud Mirror.");
+      console.warn("[DATABASE] Local Database engine unavailable. Falling back to Cloud Mirror.");
       console.error(" - Cause:", e.message || e);
+      USE_SQLITE = false;
     }
 
     // 2. HYDRATION / CLOUD CHECK
@@ -124,34 +128,26 @@ export async function getDb() {
       try {
         console.log("[DATABASE] Hydrating from backend mirror:", CLOUD_URL);
         const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 5000); // 5s timeout
+        const timeoutId = setTimeout(() => controller.abort(), 5000); 
 
         const res = await fetch(CLOUD_URL, { signal: controller.signal });
         clearTimeout(timeoutId);
-
+        
         if (res.ok) {
-          const cloudData = await res.json();
-          if (cloudData && typeof cloudData === 'object') {
-            // Smart merge: Only overwrite if cloud has actual data
-            Object.keys(cloudData).forEach(key => {
-              if (Array.isArray(cloudData[key]) && cloudData[key].length > 0) {
-                MEMORY_DB[key] = cloudData[key];
-              }
-            });
-            console.log("[DATABASE] Cloud data synchronized (Smart Merge).");
-          }
+          const data = await res.json();
+          // Deep merge into MEMORY_DB
+          Object.assign(MEMORY_DB, data);
+          console.log("[DATABASE] Cloud data hydration successful.");
         }
-      } catch (e: any) {
-        console.warn("[DATABASE] Backend connection failed. Trying local storage fallbacks.");
+      } catch (e) {
+        console.warn("[DATABASE] Cloud hydration failed, trying local JSON fallback.");
       }
-
-      // LOCAL JSON HYDRATION (Critical fallback for serverless/ephemeral)
+      
       const JSON_PATH = DB_PATH.replace('.db', '.json');
       try {
         if (fs.existsSync(JSON_PATH)) {
           const data = fs.readFileSync(JSON_PATH, 'utf8');
           const localData = JSON.parse(data);
-          // Smart merge for local JSON too
           Object.keys(localData).forEach(key => {
             if (Array.isArray(localData[key]) && localData[key].length > 0) {
               if (!MEMORY_DB[key] || MEMORY_DB[key].length === 0) {
@@ -181,11 +177,11 @@ export async function getDb() {
   };
 
   const syncToCloud = async () => {
-    saveToJson(); // Always commit to local disk first for immediate persistence
+    saveToJson();
     try {
       console.log("[DATABASE] Syncing to cloud mirror...");
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 8000); // 8s timeout for sync
+      const timeoutId = setTimeout(() => controller.abort(), 8000);
 
       await fetch(CLOUD_URL, {
         method: 'POST',
@@ -196,7 +192,7 @@ export async function getDb() {
       clearTimeout(timeoutId);
       console.log("[DATABASE] Cloud mirror updated.");
     } catch (e: any) {
-      console.warn("[DATABASE] Cloud sync skipped (offline):", e.message);
+      console.warn("[DATABASE] Cloud sync skipped:", e.message);
     }
   };
 
@@ -208,7 +204,7 @@ export async function getDb() {
       const db = await open({ filename: DB_PATH, driver: sqlite3.Database });
       return db;
     } catch (e) {
-      console.warn("[DATABASE] SQLite wrapper failed late. Switching to JSON/Memory.");
+      console.warn("[DATABASE] SQLite wrapper failed late.");
       USE_SQLITE = false;
     }
   }
@@ -240,23 +236,15 @@ export async function getDb() {
         const tx = MEMORY_DB.transactions.find((t: any) => t[1] === params[1]);
         if (tx) tx[6] = params[0];
       }
-      if (sql.includes('update contacts set status')) {
-        const c = MEMORY_DB.contacts.find((c: any) => c[0] === params[1]);
-        if (c) c[5] = params[0];
-      }
       
-      // IMMEDIATE PERSISTENCE: Save to JSON and Cloud on every write
       await syncToCloud();
-      
       return { lastID: id };
     },
     all: async (sql: string) => {
       const q = sql.toLowerCase();
-      
       const mapData = (data: any[], mapper: (d: any) => any) => {
         return data.map(d => {
           if (Array.isArray(d)) return mapper(d);
-          // If it's already an object, return it as is but ensure property names match expected
           return { ...d };
         });
       };
@@ -286,13 +274,9 @@ export async function getDb() {
       return results.find((r: any) => r.id === params[0] || r.ref === params[0] || r.no === params[0]) || null;
     },
     exec: async (sql: string) => {
-       // Mock exec for initialization
        return true;
     }
   };
 
   return mockDb;
 }
-
-
-
