@@ -25,7 +25,7 @@ let USE_SQLITE = false;
 
 const DB_PATH = '/app/data/gbms.db';
 // THE CLOUD MIRROR: Official GBMS Backend API (configured via env or fallback)
-const CLOUD_URL = (process.env.NEXT_PUBLIC_API_URL || 'https://backend.nipanatlas.co.tz') + '/api/storage'; 
+const CLOUD_URL = (process.env.NEXT_PUBLIC_API_URL || 'https://backend.nipanaatlas.co.tz') + '/api/storage'; 
 
 export async function getDb() {
   // 1. ATTEMPT SQLITE INITIALIZATION
