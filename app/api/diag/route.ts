@@ -10,72 +10,56 @@ export async function GET() {
   const dbPath = isContainer ? '/app/data/gbms.db' : path.join(process.cwd(), 'gbms.db');
   const jsonPath = dbPath.replace('.db', '.json');
   
-  const stats = {
+  const stats: any = {
+    time: new Date().toISOString(),
     environment: {
       isContainer,
       dbPath,
       jsonPath,
       nodeEnv: process.env.NODE_ENV,
-      cwd: process.cwd(),
-      now: new Date().toISOString()
+      cwd: process.cwd()
     },
     storage: {
       dbExists: fs.existsSync(dbPath),
-      dbSize: fs.existsSync(dbPath) ? fs.statSync(dbPath).size : 0,
       jsonExists: fs.existsSync(jsonPath),
-      jsonSize: fs.existsSync(jsonPath) ? fs.statSync(jsonPath).size : 0,
-      canWriteData: false
+      canWrite: false
     },
-    dbConnectivity: {
-      ok: false,
-      records: null as any,
+    connectivity: {
+      sqlite: false,
+      cloud: false,
       error: null as string | null
     }
   };
 
+  // 1. Test Writability
   try {
     const testFile = path.join(path.dirname(dbPath), '.write-test');
     fs.writeFileSync(testFile, 'test');
     fs.unlinkSync(testFile);
-    stats.storage.canWriteData = true;
-  } catch (e) {
-    stats.storage.canWriteData = false;
+    stats.storage.canWrite = true;
+  } catch (e: any) {
+    stats.storage.canWrite = false;
+    stats.connectivity.error = `Write failed: ${e.message}`;
   }
 
+  // 2. Test SQLite / Internal Logic
   try {
     const db = await getDb();
     const txCount = await db.all('SELECT count(*) as count FROM transactions').catch(() => []);
-    stats.dbConnectivity = {
-      ok: true,
-      records: txCount,
-      error: null
-    };
+    stats.connectivity.sqlite = true;
+    stats.dbRecords = txCount;
   } catch (e: any) {
-    fs.writeFileSync(jsonPath + '.tmp', 'test');
-    fs.unlinkSync(jsonPath + '.tmp');
-    jsonOk = true;
-  } catch (e) {}
+    stats.connectivity.sqlite = false;
+    stats.connectivity.error = stats.connectivity.error || `DB failed: ${e.message}`;
+  }
 
+  // 3. Test Cloud Connectivity
   try {
-    const res = await fetch('https://backend.nipanaatlas.co.tz/api/storage', { method: 'HEAD' });
-    cloudOk = res.ok;
-  } catch (e) {}
+    const res = await fetch('https://backend.nipanaatlas.co.tz/api/diag', { method: 'GET', signal: AbortSignal.timeout(2000) });
+    stats.connectivity.cloud = res.ok;
+  } catch (e: any) {
+    stats.connectivity.cloud = false;
+  }
 
-  return NextResponse.json({
-    diagnostics: {
-      platform: {
-        is_container: isContainer,
-        cwd: process.cwd(),
-        node_env: process.env.NODE_ENV
-      },
-      storage: {
-        db_path: dbPath,
-        json_path: jsonPath,
-        sqlite_initialized: sqliteOk,
-        disk_writable: jsonOk,
-        cloud_reachable: cloudOk
-      },
-      error: error
-    }
-  });
+  return NextResponse.json(stats);
 }
