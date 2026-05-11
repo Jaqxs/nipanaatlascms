@@ -186,8 +186,8 @@ export default function SitesPage() {
                     { label: "Delete Site", icon: "ri-delete-bin-line", onClick: () => handleDelete(site.id), danger: true },
                   ]} />
                 </td>
-              </tr>
-            ))}
+              );
+            })}
           </tbody>
         </table>
       </div>
