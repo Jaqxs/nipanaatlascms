@@ -245,11 +245,11 @@ export default function InventoryPage() {  const [tab, setTab] = useState<"batch
                   <td className="text-ink-muted">{r.t}</td>
                   <td className="font-numeric text-ink">{r.b}</td>
                   <td>{r.m}</td>
-                  <td className="font-numeric text-ink-muted">{r.before.toFixed(1)}</td>
-                  <td className={`font-numeric ${r.d < 0 ? "text-rose-700" : r.d > 0 ? "text-sage-700" : "text-ink-muted"}`}>
-                    {r.d > 0 ? "+" : ""}{r.d.toFixed(1)} g
+                  <td className="font-numeric text-ink-muted">{(r.before || 0).toFixed(1)}</td>
+                  <td className={`font-numeric ${(r.d || 0) < 0 ? "text-rose-700" : (r.d || 0) > 0 ? "text-sage-700" : "text-ink-muted"}`}>
+                    {(r.d || 0) > 0 ? "+" : ""}{(r.d || 0).toFixed(1)} g
                   </td>
-                  <td className="font-numeric text-ink">{r.after.toFixed(1)}</td>
+                  <td className="font-numeric text-ink">{(r.after || 0).toFixed(1)}</td>
                   <td className="text-ink-soft">{r.by}</td>
                   <td className="text-ink-muted">{r.l}</td>
                   <td className="text-right">

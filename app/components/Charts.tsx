@@ -28,6 +28,7 @@ const tooltipStyle = {
 const tip$ = (v: number) => `$${v.toLocaleString()}`;
 
 export function SalesVsExpensesChart() {
+  if (!SALES_VS_EXPENSES || SALES_VS_EXPENSES.length === 0) return <div className="h-[280px] flex items-center justify-center text-ink-faint text-xs">No data available</div>;
   return (
     <div className="h-[280px] w-full">
       <ResponsiveContainer>
@@ -45,12 +46,14 @@ export function SalesVsExpensesChart() {
 }
 
 export function ProfitTrendChart({ className = "h-[200px]" }: { className?: string } = {}) {
-  const forecastStart = PROFIT_TREND.findIndex((p) => p.forecast !== null);
+  const forecastStart = (PROFIT_TREND || []).findIndex((p) => p.forecast !== null);
   const todayDay = forecastStart > 0 ? PROFIT_TREND[forecastStart - 1].day : null;
-  const peak = PROFIT_TREND.length > 0 
+  const peak = (PROFIT_TREND || []).length > 0 
     ? PROFIT_TREND.reduce((a, b) => (b.profit > (a?.profit || 0) ? b : a), PROFIT_TREND[0])
     : null;
-  const last = PROFIT_TREND.length > 0 ? PROFIT_TREND[PROFIT_TREND.length - 1] : null;
+  const last = (PROFIT_TREND || []).length > 0 ? PROFIT_TREND[PROFIT_TREND.length - 1] : null;
+
+  if (!PROFIT_TREND || PROFIT_TREND.length === 0) return <div className={`${className} flex items-center justify-center text-ink-faint text-xs`}>No trend data</div>;
 
   return (
     <div className={`${className} w-full relative`}>
@@ -122,8 +125,10 @@ export function ProfitTrendChart({ className = "h-[200px]" }: { className?: stri
 }
 
 export function StockByPurityChart({ size = "default" }: { size?: "default" | "large" } = {}) {
-  const total = STOCK_BY_PURITY.reduce((a, b) => a + b.value, 0);
+  const data = STOCK_BY_PURITY || [];
+  const total = data.reduce((a, b) => a + (b.value || 0), 0);
   const isLarge = size === "large";
+  if (data.length === 0) return <div className="h-[220px] flex items-center justify-center text-ink-faint text-xs italic">Awaiting inventory data...</div>;
   return (
     <div className={`${isLarge ? "h-[300px]" : "h-[220px]"} w-full relative`}>
       <ResponsiveContainer>
@@ -138,9 +143,9 @@ export function StockByPurityChart({ size = "default" }: { size?: "default" | "l
             strokeWidth={2}
             animationDuration={700}
           >
-            {STOCK_BY_PURITY.map((s, i) => <Cell key={i} fill={s.color} />)}
+            {data.map((s, i) => <Cell key={i} fill={s.color} />)}
           </Pie>
-          <Tooltip {...tooltipStyle} formatter={(v: number, n: string) => [`${v.toFixed(1)} g`, n]} />
+          <Tooltip {...tooltipStyle} formatter={(v: number, n: string) => [`${(v || 0).toFixed(1)} g`, n]} />
         </PieChart>
       </ResponsiveContainer>
       <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
@@ -152,6 +157,7 @@ export function StockByPurityChart({ size = "default" }: { size?: "default" | "l
 }
 
 export function CashFlowWaterfall() {
+  if (!CASH_FLOW || CASH_FLOW.length === 0) return <div className="h-[280px] flex items-center justify-center text-ink-faint text-xs">No transaction history</div>;
   return (
     <div className="h-[280px] w-full">
       <ResponsiveContainer>
@@ -269,7 +275,8 @@ export function InventoryAreaChart() {
 
 // Mini sparkline for the gold price card
 export function GoldPriceSparkline({ data }: { data: number[] }) {
-  const arr = data.map((v, i) => ({ i, v }));
+  if (!data || data.length === 0) return <div className="h-[60px]" />;
+  const arr = (data || []).map((v, i) => ({ i, v }));
   return (
     <div className="h-[60px] w-full">
       <ResponsiveContainer>

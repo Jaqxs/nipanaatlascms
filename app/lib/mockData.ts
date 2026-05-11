@@ -1,14 +1,16 @@
-export const fmtCurrency = (n: number, c = "USD") =>
-  new Intl.NumberFormat("en-US", {
+export const fmtCurrency = (n: number | null | undefined, c = "USD") => {
+  if (n === null || n === undefined || isNaN(n)) return "$0";
+  return new Intl.NumberFormat("en-US", {
     style: "currency",
     currency: c,
     maximumFractionDigits: 0,
   }).format(n);
-
-export const fmtWeight = (g: number) => {
-  if (typeof g !== 'number' || isNaN(g)) return "0.0 g";
-  return g >= 1000 ? `${(g / 1000).toFixed(2)} kg` : `${g.toFixed(1)} g`;
 };
+
+export function fmtWeight(g: number | null | undefined) {
+  if (g === null || g === undefined || isNaN(g)) return "0 g";
+  return g >= 1000 ? `${(g / 1000).toFixed(2)} kg` : `${g.toFixed(1)} g`;
+}
 
 export const KPIS = {
   totalSales: 0,
