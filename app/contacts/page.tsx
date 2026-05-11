@@ -198,8 +198,35 @@ export default function ContactsPage() {
                       ...(c.outstanding > 0 ? [
                         { label: "Send reminder", icon: "ri-notification-line", onClick: () => alert("Reminder sent") },
                       ] : []),
-                      { label: c.status === "active" ? "Deactivate" : "Activate", icon: c.status === "active" ? "ri-pause-line" : "ri-play-line", onClick: () => alert("Status toggled"), divider: true },
-                      { label: "Delete", icon: "ri-delete-bin-line", onClick: () => alert("Delete"), danger: true, divider: true },
+                      { 
+                        label: c.status === "active" ? "Deactivate" : "Activate", 
+                        icon: c.status === "active" ? "ri-pause-line" : "ri-play-line", 
+                        onClick: async () => {
+                          const res = await fetch(getApiUrl('/api/contacts'), {
+                            method: 'PATCH',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ id: c.id, action: 'status' })
+                          });
+                          if (res.ok) fetchContacts();
+                        }, 
+                        divider: true 
+                      },
+                      { 
+                        label: "Delete", 
+                        icon: "ri-delete-bin-line", 
+                        onClick: async () => {
+                          if (confirm(`Delete ${c.name}?`)) {
+                            const res = await fetch(getApiUrl('/api/contacts'), {
+                              method: 'PATCH',
+                              headers: { 'Content-Type': 'application/json' },
+                              body: JSON.stringify({ id: c.id, action: 'delete' })
+                            });
+                            if (res.ok) fetchContacts();
+                          }
+                        }, 
+                        danger: true, 
+                        divider: true 
+                      },
                     ]} />
                   </td>
                 </tr>
@@ -247,8 +274,35 @@ export default function ContactsPage() {
                       { label: "Edit", icon: "ri-edit-line", onClick: () => setEditing(s) },
                       { label: "Record purchase", icon: "ri-arrow-down-circle-line", onClick: () => alert(`New purchase from ${s.name}`) },
                       { label: "Record payment", icon: "ri-money-dollar-circle-line", onClick: () => alert("Payment recorded") },
-                      { label: s.status === "active" ? "Deactivate" : "Activate", icon: s.status === "active" ? "ri-pause-line" : "ri-play-line", onClick: () => alert("Status toggled"), divider: true },
-                      { label: "Delete", icon: "ri-delete-bin-line", onClick: () => alert("Delete"), danger: true, divider: true },
+                      { 
+                        label: s.status === "active" ? "Deactivate" : "Activate", 
+                        icon: s.status === "active" ? "ri-pause-line" : "ri-play-line", 
+                        onClick: async () => {
+                          const res = await fetch(getApiUrl('/api/contacts'), {
+                            method: 'PATCH',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ id: s.id, action: 'status' })
+                          });
+                          if (res.ok) fetchContacts();
+                        }, 
+                        divider: true 
+                      },
+                      { 
+                        label: "Delete", 
+                        icon: "ri-delete-bin-line", 
+                        onClick: async () => {
+                          if (confirm(`Delete ${s.name}?`)) {
+                            const res = await fetch(getApiUrl('/api/contacts'), {
+                              method: 'PATCH',
+                              headers: { 'Content-Type': 'application/json' },
+                              body: JSON.stringify({ id: s.id, action: 'delete' })
+                            });
+                            if (res.ok) fetchContacts();
+                          }
+                        }, 
+                        danger: true, 
+                        divider: true 
+                      },
                     ]} />
                   </td>
                 </tr>

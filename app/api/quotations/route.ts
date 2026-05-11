@@ -22,8 +22,8 @@ export async function POST(request: Request) {
     const no = `QUO-2026-${Math.floor(Math.random() * 10000).toString().padStart(4, '0')}`;
     
     await db.run(
-      'INSERT INTO quotations (id, no, customer, expires, amount, status) VALUES (?, ?, ?, ?, ?, ?)',
-      [id, no, customer, expires || '—', amount, status || 'DRAFT']
+      'INSERT INTO quotations (id, no, customer, expires, amount, status, createdAt) VALUES (?, ?, ?, ?, ?, ?, ?)',
+      [id, no, customer, expires || '—', amount, status || 'DRAFT', new Date().toISOString()]
     );
     
     return NextResponse.json({ id, no, message: 'Quotation created successfully' });

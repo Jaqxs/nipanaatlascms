@@ -16,12 +16,14 @@ export async function POST(request: Request) {
     // Create invoice
     const invoiceId = crypto.randomUUID();
     const invoiceNo = `INV-2026-${Math.floor(Math.random() * 10000).toString().padStart(4, '0')}`;
+    const issuedDate = new Date().toLocaleDateString('en-US', { month: 'short', day: '2-digit' });
     const dueDate = new Date();
     dueDate.setDate(dueDate.getDate() + 7);
+    const dueDateStr = dueDate.toISOString().split('T')[0];
     
     await db.run(
-      'INSERT INTO invoices (id, no, customer, due, amount, status) VALUES (?, ?, ?, ?, ?, ?)',
-      [invoiceId, invoiceNo, quotation.customer, dueDate.toISOString().split('T')[0], quotation.amount, 'sent']
+      'INSERT INTO invoices (id, no, customer, issued, due, amount, status) VALUES (?, ?, ?, ?, ?, ?, ?)',
+      [invoiceId, invoiceNo, quotation.customer, issuedDate, dueDateStr, quotation.amount, 'Sent']
     );
     
     // Update quotation status

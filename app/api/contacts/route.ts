@@ -33,3 +33,33 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: 'Failed to create contact' }, { status: 500 });
   }
 }
+export async function PATCH(request: Request) {
+  try {
+    const { id, action, ...updates } = await request.json();
+    const db = await getDb();
+
+    if (action === 'delete') {
+      await db.run('DELETE FROM contacts WHERE id = ?', [id]);
+      return NextResponse.json({ success: true, message: 'Contact deleted' });
+    }
+
+    if (action === 'status') {
+      const current = await db.get('SELECT status FROM contacts WHERE id = ?', [id]);
+      const next = current?.status === 'active' ? 'inactive' : 'active';
+      await db.run('UPDATE contacts SET status = ? WHERE id = ?', [next, id]);
+      return NextResponse.json({ success: true, status: next });
+    }
+
+    // Generic update
+    const keys = Object.keys(updates);
+    if (keys.length > 0) {
+      const setClause = keys.map(k => `${k} = ?`).join(', ');
+      const values = keys.map(k => updates[k]);
+      await db.run(`UPDATE contacts SET ${setClause} WHERE id = ?`, [...values, id]);
+    }
+
+    return NextResponse.json({ success: true });
+  } catch (error: any) {
+    return NextResponse.json({ error: 'Failed to update contact', details: error.message }, { status: 500 });
+  }
+}

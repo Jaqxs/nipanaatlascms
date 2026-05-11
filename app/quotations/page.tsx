@@ -53,11 +53,16 @@ export default function QuotationsPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    const amount = (parseFloat(formData.weight) || 0) * (parseFloat(formData.price) || 0);
     try {
       const res = await fetch(getApiUrl('/api/quotations'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(formData)
+        body: JSON.stringify({
+          ...formData,
+          amount,
+          expires: formData.expiryDate || `${formData.validity} days`
+        })
       });
       if (res.ok) {
         setCreating(false);
