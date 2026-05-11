@@ -9,6 +9,7 @@ import { ExportModal } from "../components/ExportModal";
 import { InventoryAreaChart, StockByPurityChart } from "../components/Charts";
 import { INVENTORY_BATCHES, fmtWeight, GOLD_PRICE } from "../lib/mockData";
 import { useCurrency } from "../lib/currency-context";
+import { getApiUrl } from "../lib/config";
 
 type Batch = typeof INVENTORY_BATCHES[number];
 
