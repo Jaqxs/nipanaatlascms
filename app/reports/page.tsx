@@ -53,6 +53,13 @@ export default function ReportsPage() {
     fetchStats();
   }, []);
 
+  const handleGenerate = async () => {
+    setTimeout(() => {
+      window.print();
+      setGenerating(null);
+    }, 500);
+  };
+
   return (
     <div>
       <PageHeader
@@ -205,27 +212,57 @@ export default function ReportsPage() {
       </div>
 
       <Modal open={!!generating} onClose={() => setGenerating(null)}
-        eyebrow="Generate report" title={generating || ""}
-        footer={<><button className="btn-secondary" onClick={() => setGenerating(null)}>Cancel</button><button className="btn-primary" onClick={() => setGenerating(null)}>Generate</button></>}>
-        <div className="space-y-4">
-          <Field label="Period">
-            <select className="input" defaultValue={period}>
-              <option>Today</option><option>This Week</option><option>This Month</option>
-              <option>Quarter</option><option>Year to date</option><option>Custom</option>
-            </select>
-          </Field>
-          <Field label="Format">
-            <div className="flex gap-2">
-              {["PDF", "XLSX", "CSV"].map((f, i) => (
-                <button key={f} type="button" className={`px-3 py-2 rounded-md text-sm border ${i === 0 ? "border-gold-500 bg-gold-50 text-gold-700" : "border-line text-ink-muted"}`}>
-                  {f}
-                </button>
-              ))}
+        eyebrow="Report Generator" title={generating || ""}
+        footer={<><button className="btn-secondary" onClick={() => setGenerating(null)}>Cancel</button><button className="btn-primary" onClick={handleGenerate}>Generate & Print</button></>}>
+        <div className="space-y-6">
+          <div className="flex justify-center p-4 border border-dashed border-line rounded-lg">
+            <img src="/asset/logo.jpeg" alt="NIPANA Logo" className="h-16 opacity-80" />
+          </div>
+          
+          <div className="space-y-2">
+            <h3 className="text-sm font-bold text-ink uppercase tracking-wider">Report Preview</h3>
+            <div className="surface-flat p-4 space-y-3 text-xs">
+              <div className="flex justify-between border-b border-line pb-1">
+                <span className="text-ink-muted">Report Type:</span>
+                <span className="text-ink font-medium">{generating}</span>
+              </div>
+              <div className="flex justify-between border-b border-line pb-1">
+                <span className="text-ink-muted">Exported On:</span>
+                <span className="text-ink font-medium">{new Date().toLocaleString()}</span>
+              </div>
+              <div className="flex justify-between border-b border-line pb-1">
+                <span className="text-ink-muted">Date Range:</span>
+                <span className="text-ink font-medium">{period}</span>
+              </div>
+              {stats && (
+                <>
+                  <div className="flex justify-between border-b border-line pb-1">
+                    <span className="text-ink-muted">Revenue Captured:</span>
+                    <span className="text-sage-700 font-bold">${stats.revenue.toLocaleString()}</span>
+                  </div>
+                  <div className="flex justify-between border-b border-line pb-1">
+                    <span className="text-ink-muted">Net Performance:</span>
+                    <span className="text-ink font-bold">${(stats.revenue - stats.expenses).toLocaleString()}</span>
+                  </div>
+                </>
+              )}
             </div>
-          </Field>
-          <Field label="Email when ready">
-            <input className="input" placeholder="recipient@example.com" />
-          </Field>
+          </div>
+
+          <div className="space-y-4">
+            <Field label="Configuration">
+              <div className="flex gap-2">
+                {["PDF", "XLSX", "CSV"].map((f, i) => (
+                  <button key={f} type="button" className={`px-3 py-2 rounded-md text-sm border ${i === 0 ? "border-gold-500 bg-gold-50 text-gold-700" : "border-line text-ink-muted"}`}>
+                    {f}
+                  </button>
+                ))}
+              </div>
+            </Field>
+            <Field label="Notification">
+              <input className="input" placeholder="recipient@example.com" />
+            </Field>
+          </div>
         </div>
       </Modal>
     </div>
