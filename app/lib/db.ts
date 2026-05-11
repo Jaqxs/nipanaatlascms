@@ -81,11 +81,11 @@ export async function getDb() {
 
         // SELF-HEALING: Add missing columns to existing tables
         const tables = await db.all("SELECT name FROM sqlite_master WHERE type='table'");
-        const tableNames = tables.map(t => t.name);
+        const tableNames = tables.map((t: any) => t.name);
 
         if (tableNames.includes('inventory')) {
           const cols = await db.all("PRAGMA table_info(inventory)");
-          const colNames = cols.map(c => c.name);
+          const colNames = cols.map((c: any) => c.name);
           if (!colNames.includes('batch')) await db.exec("ALTER TABLE inventory ADD COLUMN batch TEXT");
           if (!colNames.includes('karat')) await db.exec("ALTER TABLE inventory ADD COLUMN karat TEXT");
           if (!colNames.includes('fine')) await db.exec("ALTER TABLE inventory ADD COLUMN fine REAL");
@@ -95,7 +95,7 @@ export async function getDb() {
         }
         if (tableNames.includes('invoices')) {
           const cols = await db.all("PRAGMA table_info(invoices)");
-          const colNames = cols.map(c => c.name);
+          const colNames = cols.map((c: any) => c.name);
           if (!colNames.includes('issued')) await db.exec("ALTER TABLE invoices ADD COLUMN issued TEXT");
           if (!colNames.includes('due')) await db.exec("ALTER TABLE invoices ADD COLUMN due TEXT");
         }
