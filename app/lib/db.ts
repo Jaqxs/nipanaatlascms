@@ -108,55 +108,71 @@ export async function getDb() {
     // 2. HYDRATION / CLOUD CHECK
     if (process.env.NODE_ENV === 'production' || !USE_SQLITE) {
       try {
-        console.log("[DATABASE] Connecting to official backend:", CLOUD_URL);
+        console.log("[DATABASE] Hydrating from backend mirror:", CLOUD_URL);
         const res = await fetch(CLOUD_URL);
         if (res.ok) {
           const cloudData = await res.json();
           if (cloudData && typeof cloudData === 'object') {
-            MEMORY_DB = { ...MEMORY_DB, ...cloudData };
-            console.log("[DATABASE] Cloud data synchronized.");
+            // Smart merge: Only overwrite if cloud has actual data
+            Object.keys(cloudData).forEach(key => {
+              if (Array.isArray(cloudData[key]) && cloudData[key].length > 0) {
+                MEMORY_DB[key] = cloudData[key];
+              }
+            });
+            console.log("[DATABASE] Cloud data synchronized (Smart Merge).");
           }
         }
       } catch (e: any) {
-        console.error("[DATABASE] Backend connection FAILED. Trying local JSON fallback.");
+        console.warn("[DATABASE] Backend connection failed. Trying local storage fallbacks.");
       }
 
       // LOCAL JSON HYDRATION (Critical fallback for serverless/ephemeral)
-      if (!USE_SQLITE) {
-        const JSON_PATH = DB_PATH.replace('.db', '.json');
-        try {
-          if (fs.existsSync(JSON_PATH)) {
-            const data = fs.readFileSync(JSON_PATH, 'utf8');
-            MEMORY_DB = { ...MEMORY_DB, ...JSON.parse(data) };
-            console.log("[DATABASE] Persistent JSON data loaded.");
-          }
-        } catch (e) {
-          console.warn("[DATABASE] JSON load failed:", e);
+      const JSON_PATH = DB_PATH.replace('.db', '.json');
+      try {
+        if (fs.existsSync(JSON_PATH)) {
+          const data = fs.readFileSync(JSON_PATH, 'utf8');
+          const localData = JSON.parse(data);
+          // Smart merge for local JSON too
+          Object.keys(localData).forEach(key => {
+            if (Array.isArray(localData[key]) && localData[key].length > 0) {
+              if (!MEMORY_DB[key] || MEMORY_DB[key].length === 0) {
+                MEMORY_DB[key] = localData[key];
+              }
+            }
+          });
+          console.log("[DATABASE] Persistent JSON data merged.");
         }
+      } catch (e) {
+        console.warn("[DATABASE] JSON load failed:", e);
       }
     }
     INITIALIZED = true;
   }
 
   const JSON_PATH = DB_PATH.replace('.db', '.json');
+
   const saveToJson = () => {
     try {
-      fs.writeFileSync(JSON_PATH, JSON.stringify(MEMORY_DB, null, 2));
+      const dataToSave = JSON.stringify(MEMORY_DB, null, 2);
+      fs.writeFileSync(JSON_PATH, dataToSave);
+      console.log("[DATABASE] Local JSON snapshot saved.");
     } catch (e) {
       console.warn("[DATABASE] JSON save failed:", e);
     }
   };
 
   const syncToCloud = async () => {
-    saveToJson(); // Always try local file sync first
+    saveToJson(); // Always commit to local disk first for immediate persistence
     try {
+      console.log("[DATABASE] Syncing to cloud mirror...");
       await fetch(CLOUD_URL, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(MEMORY_DB)
       });
+      console.log("[DATABASE] Cloud mirror updated.");
     } catch (e: any) {
-      // Background sync failures are expected if backend is down
+      console.warn("[DATABASE] Cloud sync skipped (offline):", e.message);
     }
   };
 
@@ -175,30 +191,30 @@ export async function getDb() {
 
   // FALLBACK: CLOUD/JSON MIRROR EMULATOR
   const mockDb = {
-    run: async (sql: string, params: any[]) => {
-      const q = sql.toLowerCase();
+    run: async (q: string, params: any[] = []) => {
+      const sql = q.toLowerCase();
       const id = params[0] || Date.now().toString();
       
-      if (q.includes('insert into transactions')) MEMORY_DB.transactions.push(params);
-      else if (q.includes('insert into sites')) MEMORY_DB.sites.push(params);
-      else if (q.includes('insert into invoices')) MEMORY_DB.invoices.push(params);
-      else if (q.includes('insert into quotations')) MEMORY_DB.quotations.push(params);
-      else if (q.includes('insert into inventory')) MEMORY_DB.inventory.push(params);
-      else if (q.includes('insert into contacts')) MEMORY_DB.contacts.push(params);
-      else if (q.includes('update transactions')) {
-        const row = MEMORY_DB.transactions.find((t: any) => t[1] === params[1]);
-        if (row) row[6] = params[0];
+      if (sql.includes('insert into transactions')) MEMORY_DB.transactions.push(params);
+      if (sql.includes('insert into sites')) MEMORY_DB.sites.push(params);
+      if (sql.includes('insert into invoices')) MEMORY_DB.invoices.push(params);
+      if (sql.includes('insert into quotations')) MEMORY_DB.quotations.push(params);
+      
+      if (sql.includes('delete from transactions')) {
+        MEMORY_DB.transactions = MEMORY_DB.transactions.filter((t: any) => t[1] !== params[0]);
       }
-      else if (q.includes('delete from')) {
-        const delId = params[0];
-        if (q.includes('transactions')) MEMORY_DB.transactions = MEMORY_DB.transactions.filter((t: any) => t[1] !== delId);
-        if (q.includes('sites')) MEMORY_DB.sites = MEMORY_DB.sites.filter((s: any) => s[0] !== delId);
-        if (q.includes('inventory')) MEMORY_DB.inventory = MEMORY_DB.inventory.filter((i: any) => i[0] !== delId);
-        if (q.includes('invoices')) MEMORY_DB.invoices = MEMORY_DB.invoices.filter((inv: any) => inv[0] !== delId);
-        if (q.includes('contacts')) MEMORY_DB.contacts = MEMORY_DB.contacts.filter((c: any) => c.id !== delId);
+      if (sql.includes('delete from sites')) {
+        MEMORY_DB.sites = MEMORY_DB.sites.filter((s: any) => s[0] !== params[0]);
       }
       
+      if (sql.includes('update transactions set status')) {
+        const tx = MEMORY_DB.transactions.find((t: any) => t[1] === params[1]);
+        if (tx) tx[6] = params[0];
+      }
+      
+      // IMMEDIATE PERSISTENCE: Save to JSON and Cloud on every write
       await syncToCloud();
+      
       return { lastID: id };
     },
     all: async (sql: string) => {

@@ -11,6 +11,7 @@ import { RECENT_TX } from "../lib/mockData";
 import { useCurrency } from "../lib/currency-context";
 import { useDateRange } from "../lib/date-range-context";
 import { getApiUrl } from "../lib/config";
+import { usePersistence } from "../lib/persistence-context";
 
 const TYPES = ["All", "Gold Sale", "Gold Purchase", "Op. Expense", "Processing", "Logistics", "Cash Inflow", "Cash Outflow"];
 const STATUS = ["All", "Pending", "Confirmed", "Rejected"];
@@ -53,15 +54,37 @@ export default function TransactionsPage() {
     if (query) setSearch(query);
   }, [searchParams]);
 
+  const { backupData, getBackup } = usePersistence();
+  const [isUsingBackup, setIsUsingBackup] = useState(false);
+
   const fetchTransactions = async () => {
     setLoading(true);
     try {
       const res = await fetch(getApiUrl('/api/transactions'));
       const data = await res.json();
-      setRows(Array.isArray(data) ? data : []);
+      if (Array.isArray(data) && data.length > 0) {
+        setRows(data);
+        backupData('transactions', data);
+        setIsUsingBackup(false);
+      } else {
+        // Backend returned empty or failed, try backup
+        const backup = getBackup('transactions');
+        if (backup && backup.length > 0) {
+          setRows(backup);
+          setIsUsingBackup(true);
+        } else {
+          setRows([]);
+        }
+      }
     } catch (err) {
       console.error("Failed to fetch transactions:", err);
-      setRows([]);
+      const backup = getBackup('transactions');
+      if (backup) {
+        setRows(backup);
+        setIsUsingBackup(true);
+      } else {
+        setRows([]);
+      }
     } finally {
       setLoading(false);
     }
@@ -162,6 +185,21 @@ export default function TransactionsPage() {
           </>
         }
       />
+
+      {isUsingBackup && (
+        <div className="bg-amber-50 border border-amber-200 p-4 rounded-xl flex items-center gap-4 mb-6">
+          <div className="w-10 h-10 rounded-full bg-amber-100 flex items-center justify-center shrink-0">
+            <i className="ri-shield-check-line text-xl text-amber-700" />
+          </div>
+          <div>
+            <div className="text-sm font-bold text-amber-900">Operating in Safe Mode (Browser Backup)</div>
+            <div className="text-xs text-amber-700">The primary cloud storage is currently offline. You are viewing your last recorded session from this browser.</div>
+          </div>
+          <button onClick={fetchTransactions} className="ml-auto btn-secondary py-1.5 text-xs">
+            <i className="ri-refresh-line" /> Try reconnecting
+          </button>
+        </div>
+      )}
 
       {/* Compact filter row with dropdowns */}
       <div className="surface-flat p-3 flex flex-wrap items-center gap-3 mb-5">

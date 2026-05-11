@@ -6,6 +6,7 @@ import { RoleProvider } from "./lib/role-context";
 import { CurrencyProvider } from "./lib/currency-context";
 import { ClientLayout } from "./components/ClientLayout";
 import { DateRangeProvider } from "./lib/date-range-context";
+import { PersistenceProvider } from "./lib/persistence-context";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -34,7 +35,9 @@ export default function RootLayout({
           <RoleProvider>
             <CurrencyProvider>
               <DateRangeProvider>
-                <ClientLayout>{children}</ClientLayout>
+                <PersistenceProvider>
+                  <ClientLayout>{children}</ClientLayout>
+                </PersistenceProvider>
               </DateRangeProvider>
             </CurrencyProvider>
           </RoleProvider>

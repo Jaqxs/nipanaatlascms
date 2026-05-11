@@ -9,6 +9,7 @@ import { ExportModal } from "../components/ExportModal";
 import { useCurrency } from "../lib/currency-context";
 import { useDateRange } from "../lib/date-range-context";
 import { getApiUrl } from "../lib/config";
+import { usePersistence } from "../lib/persistence-context";
 
 const TABS = ["All", "Draft", "Pending", "Sent", "Paid", "Overdue"];
 
@@ -43,15 +44,36 @@ export default function InvoicesPage() {
 
   const [confirming, setConfirming] = useState<{ inv: any; action: string } | null>(null);
 
+  const { backupData, getBackup } = usePersistence();
+  const [isUsingBackup, setIsUsingBackup] = useState(false);
+
   const fetchInvoices = async () => {
     setLoading(true);
     try {
       const res = await fetch(getApiUrl('/api/invoices'));
       const data = await res.json();
-      setInvoices(Array.isArray(data) ? data : []);
+      if (Array.isArray(data) && data.length > 0) {
+        setInvoices(data);
+        backupData('invoices', data);
+        setIsUsingBackup(false);
+      } else {
+        const b = getBackup('invoices');
+        if (b) {
+          setInvoices(b);
+          setIsUsingBackup(true);
+        } else {
+          setInvoices([]);
+        }
+      }
     } catch (err) {
       console.error("Failed to fetch invoices:", err);
-      setInvoices([]);
+      const b = getBackup('invoices');
+      if (b) {
+        setInvoices(b);
+        setIsUsingBackup(true);
+      } else {
+        setInvoices([]);
+      }
     } finally {
       setLoading(false);
     }
@@ -98,14 +120,29 @@ export default function InvoicesPage() {
               <i className="ri-download-line" /> Export
             </button>
             <button className="btn-secondary" onClick={() => setReminding(true)}>
-              <i className="ri-mail-send-line" /> Send reminders
+              <i className="ri-mail-send-line" /> Remind all
             </button>
             <button className="btn-primary" onClick={() => setCreating(true)}>
-              <i className="ri-add-line" /> New invoice
+              <i className="ri-add-line" /> Create invoice
             </button>
           </>
         }
       />
+
+      {isUsingBackup && (
+        <div className="bg-amber-50 border border-amber-200 p-4 rounded-xl flex items-center gap-4 mb-6">
+          <div className="w-10 h-10 rounded-full bg-amber-100 flex items-center justify-center shrink-0">
+            <i className="ri-shield-check-line text-xl text-amber-700" />
+          </div>
+          <div>
+            <div className="text-sm font-bold text-amber-900">Operating in Safe Mode (Browser Backup)</div>
+            <div className="text-xs text-amber-700">The primary cloud storage is currently offline. You are viewing your last recorded session from this browser.</div>
+          </div>
+          <button onClick={fetchInvoices} className="ml-auto btn-secondary py-1.5 text-xs">
+            <i className="ri-refresh-line" /> Try reconnecting
+          </button>
+        </div>
+      )}
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
         <div className="surface p-5">

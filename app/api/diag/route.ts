@@ -10,23 +10,47 @@ export async function GET() {
   const dbPath = isContainer ? '/app/data/gbms.db' : path.join(process.cwd(), 'gbms.db');
   const jsonPath = dbPath.replace('.db', '.json');
   
-  let sqliteOk = false;
-  let jsonOk = false;
-  let cloudOk = false;
-  let error = null;
+  const stats = {
+    environment: {
+      isContainer,
+      dbPath,
+      jsonPath,
+      nodeEnv: process.env.NODE_ENV,
+      cwd: process.cwd(),
+      now: new Date().toISOString()
+    },
+    storage: {
+      dbExists: fs.existsSync(dbPath),
+      dbSize: fs.existsSync(dbPath) ? fs.statSync(dbPath).size : 0,
+      jsonExists: fs.existsSync(jsonPath),
+      jsonSize: fs.existsSync(jsonPath) ? fs.statSync(jsonPath).size : 0,
+      canWriteData: false
+    },
+    dbConnectivity: {
+      ok: false,
+      records: null as any,
+      error: null as string | null
+    }
+  };
 
   try {
-    const db = await getDb();
-    sqliteOk = true;
-    
-    // Test write
-    await db.run('CREATE TABLE IF NOT EXISTS diag (id TEXT PRIMARY KEY, val TEXT)');
-    await db.run('INSERT OR REPLACE INTO diag (id, val) VALUES (?, ?)', ['test', new Date().toISOString()]);
-  } catch (e: any) {
-    error = e.message;
+    const testFile = path.join(path.dirname(dbPath), '.write-test');
+    fs.writeFileSync(testFile, 'test');
+    fs.unlinkSync(testFile);
+    stats.storage.canWriteData = true;
+  } catch (e) {
+    stats.storage.canWriteData = false;
   }
 
   try {
+    const db = await getDb();
+    const txCount = await db.all('SELECT count(*) as count FROM transactions').catch(() => []);
+    stats.dbConnectivity = {
+      ok: true,
+      records: txCount,
+      error: null
+    };
+  } catch (e: any) {
     fs.writeFileSync(jsonPath + '.tmp', 'test');
     fs.unlinkSync(jsonPath + '.tmp');
     jsonOk = true;

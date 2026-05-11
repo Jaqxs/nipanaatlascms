@@ -21,6 +21,7 @@ import {
 import { useRole } from "./lib/role-context";
 import { useCurrency } from "./lib/currency-context";
 import { useDateRange } from "./lib/date-range-context";
+import { usePersistence } from "./lib/persistence-context";
 
 const QUICK_ACTIONS = [
   { label: "Record Sale", icon: "ri-arrow-up-circle-line", href: "/transactions?action=new" },
@@ -38,24 +39,53 @@ export default function Dashboard() {
   const [recentTx, setRecentTx] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    const fetchData = async () => {
-      try {
-        const [statsRes, txsRes] = await Promise.all([
-          fetch(getApiUrl('/api/dashboard/stats')),
-          fetch(getApiUrl('/api/transactions?limit=8'))
-        ]);
-        const statsData = await statsRes.json();
-        const txData = await txsRes.json();
+  const { backupData, getBackup } = usePersistence();
+  const [isUsingBackup, setIsUsingBackup] = useState(false);
+
+  const fetchData = async () => {
+    setLoading(true);
+    try {
+      const [statsRes, txsRes] = await Promise.all([
+        fetch(getApiUrl('/api/dashboard/stats')),
+        fetch(getApiUrl('/api/transactions?limit=8'))
+      ]);
+      const statsData = await statsRes.json();
+      const txData = await txsRes.json();
+      
+      if (statsData && !statsData.error) {
         setStats(statsData);
-        setRecentTx(Array.isArray(txData) ? txData : []);
-      } catch (err) {
-        console.error("Failed to fetch dashboard data:", err);
-        setRecentTx([]);
-      } finally {
-        setLoading(false);
+        backupData('dashboard_stats', statsData);
+      } else {
+        const b = getBackup('dashboard_stats');
+        if (b) setStats(b);
       }
-    };
+
+      if (Array.isArray(txData) && txData.length > 0) {
+        setRecentTx(txData);
+        backupData('transactions', txData);
+        setIsUsingBackup(false);
+      } else {
+        const b = getBackup('transactions');
+        if (b) {
+          setRecentTx(b.slice(0, 8));
+          setIsUsingBackup(true);
+        }
+      }
+    } catch (err) {
+      console.error("Failed to fetch dashboard data:", err);
+      const bStats = getBackup('dashboard_stats');
+      const bTx = getBackup('transactions');
+      if (bStats) setStats(bStats);
+      if (bTx) {
+        setRecentTx(bTx.slice(0, 8));
+        setIsUsingBackup(true);
+      }
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
     fetchData();
   }, []);
 
@@ -81,6 +111,21 @@ export default function Dashboard() {
           </button>
         )}
       />
+
+      {isUsingBackup && (
+        <div className="bg-amber-50 border border-amber-200 p-4 rounded-xl flex items-center gap-4 mb-6">
+          <div className="w-10 h-10 rounded-full bg-amber-100 flex items-center justify-center shrink-0">
+            <i className="ri-shield-check-line text-xl text-amber-700" />
+          </div>
+          <div>
+            <div className="text-sm font-bold text-amber-900">Operating in Safe Mode (Browser Backup)</div>
+            <div className="text-xs text-amber-700">The primary cloud storage is currently offline. You are viewing your last recorded session from this browser.</div>
+          </div>
+          <button onClick={fetchData} className="ml-auto btn-secondary py-1.5 text-xs">
+            <i className="ri-refresh-line" /> Try reconnecting
+          </button>
+        </div>
+      )}
 
       {/* KPI Row — role-aware */}
       {isAdmin ? (
