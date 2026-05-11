@@ -82,10 +82,10 @@ export default function ReportsPage() {
 
       {/* Top metrics */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-        <Metric label="Live Revenue" value={stats ? `$${(stats.revenue / 1000).toFixed(1)}k` : "..."} hint="total all-time sales" />
-        <Metric label="Net Profit" value={stats ? `$${((stats.revenue - stats.expenses) / 1000).toFixed(1)}k` : "..."} hint="total all-time profit" />
-        <Metric label="Stock Weight" value={stats ? `${(stats.stockWeight / 1000).toFixed(2)}kg` : "..."} hint="current inventory" />
-        <Metric label="Total Invoices" value={stats ? stats.invoiceCount.toString() : "..."} hint="pending + paid" />
+        <Metric label="Live Revenue" value={stats ? `$${((stats.revenue || 0) / 1000).toFixed(1)}k` : "..."} hint="total all-time sales" />
+        <Metric label="Net Profit" value={stats ? `$${(((stats.revenue || 0) - (stats.expenses || 0)) / 1000).toFixed(1)}k` : "..."} hint="total all-time profit" />
+        <Metric label="Stock Weight" value={stats ? `${((stats.stockWeight || 0) / 1000).toFixed(2)}kg` : "..."} hint="current inventory" />
+        <Metric label="Total Invoices" value={stats ? (stats.invoiceCount || 0).toString() : "..."} hint="pending + paid" />
       </div>
 
       {/* Chart row */}
@@ -238,11 +238,11 @@ export default function ReportsPage() {
                 <>
                   <div className="flex justify-between border-b border-line pb-1">
                     <span className="text-ink-muted">Revenue Captured:</span>
-                    <span className="text-sage-700 font-bold">${stats.revenue.toLocaleString()}</span>
+                    <span className="text-sage-700 font-bold">${(stats.revenue || 0).toLocaleString()}</span>
                   </div>
                   <div className="flex justify-between border-b border-line pb-1">
                     <span className="text-ink-muted">Net Performance:</span>
-                    <span className="text-ink font-bold">${(stats.revenue - stats.expenses).toLocaleString()}</span>
+                    <span className="text-ink font-bold">${((stats.revenue || 0) - (stats.expenses || 0)).toLocaleString()}</span>
                   </div>
                 </>
               )}

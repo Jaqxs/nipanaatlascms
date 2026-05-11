@@ -38,6 +38,7 @@ interface CurrencyCtx {
 const Ctx = createContext<CurrencyCtx | null>(null);
 
 function compactFmt(value: number) {
+  if (value === null || value === undefined || isNaN(value)) return "0";
   const abs = Math.abs(value);
   if (abs >= 1_000_000_000) return (value / 1_000_000_000).toFixed(abs >= 10_000_000_000 ? 1 : 2).replace(/\.?0+$/, "") + "B";
   if (abs >= 1_000_000) return (value / 1_000_000).toFixed(abs >= 10_000_000 ? 1 : 2).replace(/\.?0+$/, "") + "M";
@@ -45,7 +46,10 @@ function compactFmt(value: number) {
   return value.toFixed(0);
 }
 
-function fmt(amount: number, meta: CurrencyMeta, opts?: FormatOpts) {
+function fmt(amount: number | null | undefined, meta: CurrencyMeta, opts?: FormatOpts) {
+  if (amount === null || amount === undefined || isNaN(amount)) {
+    return `${meta.symbol} 0`;
+  }
   const value = amount * meta.rate;
   const sign = opts?.signed && value > 0 ? "+" : "";
   const negative = value < 0 ? "−" : sign;
