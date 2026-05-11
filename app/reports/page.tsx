@@ -33,7 +33,25 @@ export default function ReportsPage() {
   const [cat, setCat] = useState("All");
   const [period, setPeriod] = useState("This Month");
   const [generating, setGenerating] = useState<string | null>(null);
+  const [stats, setStats] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+
   const filtered = cat === "All" ? REPORTS : REPORTS.filter((r) => r.category === cat);
+
+  useEffect(() => {
+    const fetchStats = async () => {
+      try {
+        const res = await fetch('/api/reports/stats');
+        const data = await res.json();
+        setStats(data);
+      } catch (err) {
+        console.error("Failed to fetch report stats:", err);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchStats();
+  }, []);
 
   return (
     <div>
@@ -57,10 +75,10 @@ export default function ReportsPage() {
 
       {/* Top metrics */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-        <Metric label="Available reports" value={REPORTS.length.toString()} hint="across 5 categories" />
-        <Metric label="Generated this month" value="48" hint="auto + on demand" />
-        <Metric label="Scheduled reports" value={REPORTS.filter((r) => r.schedule !== "On demand").length.toString()} hint="daily, weekly, monthly" />
-        <Metric label="Storage retention" value="7 yrs" hint="financial compliance" />
+        <Metric label="Live Revenue" value={stats ? `$${(stats.revenue / 1000).toFixed(1)}k` : "..."} hint="total all-time sales" />
+        <Metric label="Net Profit" value={stats ? `$${((stats.revenue - stats.expenses) / 1000).toFixed(1)}k` : "..."} hint="total all-time profit" />
+        <Metric label="Stock Weight" value={stats ? `${(stats.stockWeight / 1000).toFixed(2)}kg` : "..."} hint="current inventory" />
+        <Metric label="Total Invoices" value={stats ? stats.invoiceCount.toString() : "..."} hint="pending + paid" />
       </div>
 
       {/* Chart row */}
@@ -76,7 +94,7 @@ export default function ReportsPage() {
               <span className="inline-flex items-center gap-1.5"><span className="w-2 h-2 rounded-full bg-sage-500" /> Net profit</span>
             </div>
           </div>
-          <MonthlyRevenueProfitChart />
+          <MonthlyRevenueProfitChart data={stats?.monthlyTrend} />
         </div>
         <div className="surface p-5">
           <div className="text-[11px] uppercase tracking-[0.14em] text-ink-muted">Distribution</div>
@@ -84,7 +102,7 @@ export default function ReportsPage() {
           <ReportRunsDonut />
           <div className="grid grid-cols-2 gap-x-4 gap-y-2 mt-3 text-xs">
             {[
-              { name: "Financial", value: 24, color: "#b8893d" },
+              { name: "Financial", value: stats?.txCount || 24, color: "#b8893d" },
               { name: "Operations", value: 12, color: "#dcb35a" },
               { name: "Inventory", value: 8, color: "#c89b62" },
               { name: "Audit", value: 6, color: "#7a8c6b" },

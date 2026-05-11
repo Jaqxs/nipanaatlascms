@@ -20,12 +20,14 @@ const OPS_EXTRA = { id: "field", label: "Field tools", icon: "ri-toolbox-line" }
 const ADMIN_EXTRA = { id: "admin-shortcuts", label: "Admin shortcuts", icon: "ri-shield-star-line" };
 
 export default function ProfilePage() {
-  const { user, logout } = useAuth();
+  const { user, logout, updateUser } = useAuth();
   const { isAdmin } = useRole();
   const { code, setCode } = useCurrency();
   const [tab, setTab] = useState("account");
   const [pwOpen, setPwOpen] = useState(false);
   const [twoFAOpen, setTwoFAOpen] = useState(false);
+  const [newName, setNewName] = useState(user?.name || "");
+  const [newImage, setNewImage] = useState(user?.image || "");
 
   const TABS = [
     ...COMMON_TABS,
@@ -33,6 +35,11 @@ export default function ProfilePage() {
   ];
 
   const initials = (user?.name || "JA").split(" ").map((p) => p[0]).slice(0, 2).join("").toUpperCase();
+
+  const handleSave = () => {
+    updateUser({ name: newName, image: newImage });
+    alert("Profile updated successfully!");
+  };
 
   return (
     <div>
@@ -44,12 +51,16 @@ export default function ProfilePage() {
       {/* Identity card */}
       <div className="surface p-6 mb-6">
         <div className="flex items-start gap-5 flex-wrap">
-          <div
-            className="w-20 h-20 rounded-2xl flex items-center justify-center text-white font-display text-3xl shrink-0"
-            style={{ background: "#b8893d" }}
-          >
-            {initials}
-          </div>
+          {user?.image ? (
+            <img src={user.image} alt="Profile" className="w-20 h-20 rounded-2xl object-cover shrink-0" />
+          ) : (
+            <div
+              className="w-20 h-20 rounded-2xl flex items-center justify-center text-white font-display text-3xl shrink-0"
+              style={{ background: "#b8893d" }}
+            >
+              {initials}
+            </div>
+          )}
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-3 flex-wrap">
               <h2 className="font-display text-[24px] text-ink leading-tight">{user?.name}</h2>
@@ -98,7 +109,13 @@ export default function ProfilePage() {
             <div className="surface p-6">
               <SectionHeader eyebrow="Account" title="Personal information" />
               <div className="grid grid-cols-2 gap-4">
-                <Field label="Full name"><input className="input" defaultValue={user?.name} /></Field>
+                <Field label="Full name" full><input className="input" value={newName} onChange={e => setNewName(e.target.value)} /></Field>
+                <Field label="Profile Image URL" full>
+                  <div className="flex gap-2">
+                    <input className="input flex-1" value={newImage} onChange={e => setNewImage(e.target.value)} placeholder="https://unsplash.com/..." />
+                    <button className="btn-secondary" onClick={() => setNewImage("https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?q=80&w=120&h=120&auto=format&fit=crop")}>Random</button>
+                  </div>
+                </Field>
                 <Field label="Email"><input className="input" defaultValue={user?.email} disabled /></Field>
                 <Field label="Phone"><input className="input" defaultValue="+255 754 123 456" /></Field>
                 <Field label="Role">
@@ -112,7 +129,7 @@ export default function ProfilePage() {
                   <textarea rows={2} className="input" defaultValue={isAdmin ? "Oversees daily operations across the Lake Zone." : "Records purchases, sales, and inventory movements in the field."} />
                 </Field>
               </div>
-              <div className="mt-6 flex gap-3"><button className="btn-primary">Save changes</button></div>
+              <div className="mt-6 flex gap-3"><button className="btn-primary" onClick={handleSave}>Save changes</button></div>
             </div>
           )}
 

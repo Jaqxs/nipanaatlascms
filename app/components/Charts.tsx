@@ -170,8 +170,8 @@ export function CashFlowWaterfall() {
   );
 }
 
-export function MonthlyRevenueProfitChart() {
-  const data = [
+export function MonthlyRevenueProfitChart({ data: propData }: { data?: any[] }) {
+  const defaultData = [
     { m: "Jun", revenue: 142_800, profit: 38_400 },
     { m: "Jul", revenue: 165_300, profit: 44_900 },
     { m: "Aug", revenue: 178_600, profit: 49_200 },
@@ -185,6 +185,7 @@ export function MonthlyRevenueProfitChart() {
     { m: "Apr", revenue: 312_600, profit: 102_300 },
     { m: "May", revenue: 248_400, profit: 85_600 },
   ];
+  const data = propData || defaultData;
   return (
     <div className="h-[300px] w-full">
       <ResponsiveContainer>
