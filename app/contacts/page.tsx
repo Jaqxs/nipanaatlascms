@@ -97,16 +97,16 @@ export default function ContactsPage() {
   const customers = (contactsArray.filter(c => (c as any).type === 'customer') as Customer[])
     .filter((c) => statusFilter === "All" || c.status === statusFilter.toLowerCase())
     .filter((c) => !search ||
-      (c.name || "").toLowerCase().includes(search.toLowerCase()) ||
-      (c.id || "").toLowerCase().includes(search.toLowerCase()) ||
-      (c.email || "").toLowerCase().includes(search.toLowerCase()));
+      String(c.name || "").toLowerCase().includes(String(search).toLowerCase()) ||
+      String(c.id || "").toLowerCase().includes(String(search).toLowerCase()) ||
+      String(c.email || "").toLowerCase().includes(String(search).toLowerCase()));
 
   const suppliers = (contactsArray.filter(c => (c as any).type === 'supplier') as Supplier[])
     .filter((s) => statusFilter === "All" || s.status === statusFilter.toLowerCase())
     .filter((s) => !search ||
-      (s.name || "").toLowerCase().includes(search.toLowerCase()) ||
-      (s.id || "").toLowerCase().includes(search.toLowerCase()) ||
-      (s.email || "").toLowerCase().includes(search.toLowerCase()));
+      String(s.name || "").toLowerCase().includes(String(search).toLowerCase()) ||
+      String(s.id || "").toLowerCase().includes(String(search).toLowerCase()) ||
+      String(s.email || "").toLowerCase().includes(String(search).toLowerCase()));
 
   const totalReceivable = (customers || []).reduce((a, b) => a + (b?.outstanding || 0), 0);
   const totalPayable = (suppliers || []).reduce((a, b) => a + (b?.outstanding || 0), 0);
