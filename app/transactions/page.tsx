@@ -32,6 +32,7 @@ export default function TransactionsPage() {
 
   const [rows, setRows] = useState<Tx[]>([]);
   const [loading, setLoading] = useState(true);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [formData, setFormData] = useState({
     date: new Date().toISOString().split('T')[0],
     type: TYPES[1],
@@ -89,6 +90,7 @@ export default function TransactionsPage() {
       alert("Please enter a valid numeric amount");
       return;
     }
+    setIsSubmitting(true);
     try {
       const amountValue = parseFloat(formData.amount);
       const multiplier = (formData.type === "Gold Purchase" || formData.type === "Op. Expense" || formData.type === "Logistics" || formData.type === "Processing" || formData.type === "Cash Outflow" ? -1 : 1);
