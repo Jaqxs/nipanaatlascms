@@ -2,6 +2,8 @@ import { NextResponse } from 'next/server';
 import { getDb } from '@/app/lib/db';
 import fs from 'fs';
 
+export const dynamic = 'force-dynamic';
+
 export async function GET() {
   const reports: any = {
     timestamp: new Date().toISOString(),
@@ -13,15 +15,19 @@ export async function GET() {
     // 1. Check Filesystem
     reports.storage.dataFolder = fs.existsSync('/app/data') ? 'EXISTS' : 'MISSING';
     try {
-      fs.writeFileSync('/app/data/diag_test.txt', 'OK');
-      reports.storage.writeTest = 'SUCCESS';
+      if (fs.existsSync('/app/data')) {
+        fs.writeFileSync('/app/data/diag_test.txt', 'OK');
+        reports.storage.writeTest = 'SUCCESS';
+      } else {
+        reports.storage.writeTest = 'SKIPPED: Folder missing';
+      }
     } catch (e: any) {
       reports.storage.writeTest = 'FAILED: ' + e.message;
     }
 
     // 2. Check Database
     const db = await getDb();
-    reports.database = { type: (db as any).exec ? 'SQLite' : 'Cloud Mirror' };
+    reports.database = { type: db && (db as any).exec ? 'SQLite' : 'Cloud Mirror' };
     
     // 3. Test Query
     try {
