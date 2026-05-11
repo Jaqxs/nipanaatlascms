@@ -56,25 +56,27 @@ export default function InventoryPage() {  const [tab, setTab] = useState<"batch
     setLoading(true);
     try {
       const res = await fetch(getApiUrl('/api/inventory'));
+      if (!res.ok) throw new Error("API failed");
+      
       const data = await res.json();
-      if (Array.isArray(data) && data.length > 0) {
-        setInventory(data);
-        backupData('inventory', data);
+      // VALIDATE DATA STRUCTURE
+      const validData = Array.isArray(data) ? data.filter(item => item && typeof item === 'object') : [];
+      
+      if (validData.length > 0) {
+        setInventory(validData);
+        backupData('inventory', validData);
         setIsUsingBackup(false);
       } else {
-        const b = getBackup('inventory');
-        if (b) {
-          setInventory(b);
-          setIsUsingBackup(true);
-        } else {
-          setInventory([]);
-        }
+        throw new Error("No data");
       }
     } catch (err) {
-      console.error("Failed to fetch inventory:", err);
+      console.warn("Failed to fetch inventory, trying backup:", err);
       const b = getBackup('inventory');
-      if (b) {
-        setInventory(b);
+      // VALIDATE BACKUP DATA
+      const validBackup = Array.isArray(b) ? b.filter(item => item && typeof item === 'object') : [];
+      
+      if (validBackup.length > 0) {
+        setInventory(validBackup);
         setIsUsingBackup(true);
       } else {
         setInventory([]);

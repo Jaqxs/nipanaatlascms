@@ -40,25 +40,25 @@ export default function SitesPage() {
     setLoading(true);
     try {
       const res = await fetch(getApiUrl('/api/sites'));
+      if (!res.ok) throw new Error("API failed");
+      
       const data = await res.json();
-      if (Array.isArray(data) && data.length > 0) {
-        setSites(data);
-        backupData('sites', data);
+      const validData = Array.isArray(data) ? data.filter(item => item && typeof item === 'object' && item.id) : [];
+      
+      if (validData.length > 0) {
+        setSites(validData);
+        backupData('sites', validData);
         setIsUsingBackup(false);
       } else {
-        const b = getBackup('sites');
-        if (b) {
-          setSites(b);
-          setIsUsingBackup(true);
-        } else {
-          setSites([]);
-        }
+        throw new Error("No data");
       }
     } catch (err) {
-      console.error("Failed to fetch sites:", err);
+      console.warn("Failed to fetch sites, trying backup:", err);
       const b = getBackup('sites');
-      if (b) {
-        setSites(b);
+      const validBackup = Array.isArray(b) ? b.filter(item => item && typeof item === 'object' && item.id) : [];
+      
+      if (validBackup.length > 0) {
+        setSites(validBackup);
         setIsUsingBackup(true);
       } else {
         setSites([]);
