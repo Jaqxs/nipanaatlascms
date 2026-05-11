@@ -7,6 +7,7 @@ import { RowActionsMenu } from "../components/RowActionsMenu";
 import { ExportModal } from "../components/ExportModal";
 import { CUSTOMERS, SUPPLIERS, Customer, Supplier, fmtWeight } from "../lib/mockData";
 import { useCurrency } from "../lib/currency-context";
+import { getApiUrl } from "../lib/config";
 
 type Tab = "customers" | "suppliers";
 
@@ -37,7 +38,7 @@ export default function ContactsPage() {
   const fetchContacts = async () => {
     setLoading(true);
     try {
-      const res = await fetch('/api/contacts');
+      const res = await fetch(getApiUrl('/api/contacts'));
       const data = await res.json();
       setContacts(Array.isArray(data) ? data : []);
     } catch (err) {
@@ -51,7 +52,7 @@ export default function ContactsPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      const res = await fetch('/api/contacts', {
+      const res = await fetch(getApiUrl('/api/contacts'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

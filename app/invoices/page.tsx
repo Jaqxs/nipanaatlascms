@@ -8,6 +8,7 @@ import { RowActionsMenu } from "../components/RowActionsMenu";
 import { ExportModal } from "../components/ExportModal";
 import { useCurrency } from "../lib/currency-context";
 import { useDateRange } from "../lib/date-range-context";
+import { getApiUrl } from "../lib/config";
 
 const TABS = ["All", "Draft", "Pending", "Sent", "Paid", "Overdue"];
 
@@ -45,7 +46,7 @@ export default function InvoicesPage() {
   const fetchInvoices = async () => {
     setLoading(true);
     try {
-      const res = await fetch('/api/invoices');
+      const res = await fetch(getApiUrl('/api/invoices'));
       const data = await res.json();
       setInvoices(Array.isArray(data) ? data : []);
     } catch (err) {
@@ -59,7 +60,7 @@ export default function InvoicesPage() {
   const handleConfirmAction = async () => {
     if (!confirming) return;
     try {
-      const res = await fetch('/api/invoices', {
+      const res = await fetch(getApiUrl('/api/invoices'), {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ id: confirming.inv.id, action: confirming.action })
@@ -320,7 +321,7 @@ function NewInvoiceForm({ onSuccess }: { onSuccess: () => void }) {
     e.preventDefault();
     const total = lines.reduce((acc, line) => acc + (parseFloat(line.weight) || 0) * (parseFloat(line.price) || 0), 0);
     try {
-      const res = await fetch('/api/invoices', {
+      const res = await fetch(getApiUrl('/api/invoices'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

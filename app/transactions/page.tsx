@@ -10,6 +10,7 @@ import { TransactionDetailModal } from "../components/TransactionDetailModal";
 import { RECENT_TX } from "../lib/mockData";
 import { useCurrency } from "../lib/currency-context";
 import { useDateRange } from "../lib/date-range-context";
+import { getApiUrl } from "../lib/config";
 
 const TYPES = ["All", "Gold Sale", "Gold Purchase", "Op. Expense", "Processing", "Logistics", "Cash Inflow", "Cash Outflow"];
 const STATUS = ["All", "Pending", "Confirmed", "Rejected"];
@@ -54,7 +55,7 @@ export default function TransactionsPage() {
   const fetchTransactions = async () => {
     setLoading(true);
     try {
-      const res = await fetch('/api/transactions');
+      const res = await fetch(getApiUrl('/api/transactions'));
       const data = await res.json();
       setRows(Array.isArray(data) ? data : []);
     } catch (err) {
@@ -68,7 +69,7 @@ export default function TransactionsPage() {
   const handleConfirmAction = async () => {
     if (!confirming) return;
     try {
-      const res = await fetch('/api/transactions', {
+      const res = await fetch(getApiUrl('/api/transactions'), {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ ref: confirming.tx.ref, action: confirming.action })
@@ -95,8 +96,7 @@ export default function TransactionsPage() {
       const amountValue = parseFloat(formData.amount);
       const multiplier = (formData.type === "Gold Purchase" || formData.type === "Op. Expense" || formData.type === "Logistics" || formData.type === "Processing" || formData.type === "Cash Outflow" ? -1 : 1);
       
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || '';
-      const res = await fetch(`${apiUrl}/api/transactions`, {
+      const res = await fetch(getApiUrl('/api/transactions'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -309,7 +309,7 @@ export default function TransactionsPage() {
         </div>
         <button 
           onClick={async () => {
-            const res = await fetch('/api/debug');
+            const res = await fetch(getApiUrl('/api/debug'));
             const data = await res.json();
             const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
             const url = window.URL.createObjectURL(blob);

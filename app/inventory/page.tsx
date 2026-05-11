@@ -50,7 +50,7 @@ export default function InventoryPage() {  const [tab, setTab] = useState<"batch
   const fetchInventory = async () => {
     setLoading(true);
     try {
-      const res = await fetch('/api/inventory');
+      const res = await fetch(getApiUrl('/api/inventory'));
       const data = await res.json();
       setInventory(Array.isArray(data) ? data : []);
     } catch (err) {
@@ -64,10 +64,10 @@ export default function InventoryPage() {  const [tab, setTab] = useState<"batch
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      const weight = parseFloat(formData.weight);
+      const weight = parseFloat(formData.weight) || 0;
       const karat = formData.karat === "Raw" ? 0 : parseInt(formData.karat);
       const fine = karat ? (weight * karat) / 24 : 0;
-      const res = await fetch('/api/inventory', {
+      const res = await fetch(getApiUrl('/api/inventory'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -91,7 +91,7 @@ export default function InventoryPage() {  const [tab, setTab] = useState<"batch
   const handleConfirmAction = async () => {
     if (!confirm) return;
     try {
-      const res = await fetch('/api/inventory', {
+      const res = await fetch(getApiUrl('/api/inventory'), {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ id: confirm.batch.id, action: confirm.action })
@@ -109,6 +109,7 @@ export default function InventoryPage() {  const [tab, setTab] = useState<"batch
   const totalWeight = inventoryArray.reduce((a, b) => a + (b.weight || 0), 0);
   const fineWeight = inventoryArray.reduce((a, b) => a + (b.fine || 0), 0);
   const totalValue = inventoryArray.reduce((a, b) => a + (b.value || 0), 0);
+  const avgFinePrice = fineWeight > 0 ? (totalValue / fineWeight) : 0;
 
   const PURITIES = ["All", "24K", "22K", "18K", "Raw"];
   const LOCATIONS = ["All", "Vault A", "Vault B", "Processing", "In Transit"];
@@ -148,7 +149,7 @@ export default function InventoryPage() {  const [tab, setTab] = useState<"batch
         <div className="surface p-5" style={{ background: "#fdf6e4" }}>
           <div className="text-[11px] uppercase tracking-[0.14em] text-gold-700">Stock value</div>
           <div className="font-numeric text-[30px] text-ink mt-2">{format(totalValue)}</div>
-          <div className="text-xs text-gold-700 mt-2">@ {formatUSD(GOLD_PRICE.current)}/g (USD) · weighted avg {format(totalValue / fineWeight)}</div>
+          <div className="text-xs text-gold-700 mt-2">@ {formatUSD(GOLD_PRICE.current)}/g (USD) · weighted avg {format(avgFinePrice)}</div>
         </div>
       </div>
 

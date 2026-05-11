@@ -4,6 +4,7 @@ import { PageHeader } from "../components/PageHeader";
 import { Badge, statusToTone } from "../components/Badge";
 import { Modal } from "../components/Modal";
 import { RowActionsMenu } from "../components/RowActionsMenu";
+import { getApiUrl } from "../lib/config";
 
 interface Site {
   id: string;
@@ -35,7 +36,7 @@ export default function SitesPage() {
   const fetchSites = async () => {
     setLoading(true);
     try {
-      const res = await fetch('/api/sites');
+      const res = await fetch(getApiUrl('/api/sites'));
       const data = await res.json();
       setSites(Array.isArray(data) ? data : []);
     } catch (err) {
@@ -48,7 +49,7 @@ export default function SitesPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      const res = await fetch('/api/sites', {
+      const res = await fetch(getApiUrl('/api/sites'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(formData)
@@ -71,7 +72,7 @@ export default function SitesPage() {
     e.preventDefault();
     if (!editing) return;
     try {
-      const res = await fetch('/api/sites', {
+      const res = await fetch(getApiUrl('/api/sites'), {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ ...editing, action: 'update' })
@@ -88,7 +89,7 @@ export default function SitesPage() {
   const handleDelete = async (id: string) => {
     if (!confirm("Are you sure you want to delete this site?")) return;
     try {
-      const res = await fetch('/api/sites', {
+      const res = await fetch(getApiUrl('/api/sites'), {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ id, action: 'delete' })
