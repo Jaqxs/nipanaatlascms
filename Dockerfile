@@ -48,4 +48,4 @@ ENV PORT=3000
 ENV HOSTNAME="0.0.0.0"
 
 # Start script that ensures permissions every time
-CMD ["sh", "-c", "node server.js"]
+CMD ["sh", "-c", "echo 'GBMS LIVE AT: https://system.nipanaatlas.co.tz' && node server.js"]
