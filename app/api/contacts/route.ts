@@ -22,9 +22,23 @@ export async function POST(request: Request) {
     const contactId = body.id || `${typePrefix}-2026-${Math.floor(Math.random() * 1000000).toString().padStart(6, '0')}`;
     
     await db.run(
-      `INSERT INTO contacts (id, name, email, phone, location, type, totalPurchases, outstanding, status, joined)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-      [contactId, body.name, body.email, body.phone, body.location, body.type, body.totalPurchases || 0, body.outstanding || 0, body.status || 'active', new Date().toLocaleDateString('en-US', { month: 'short', day: '2-digit', year: 'numeric' })]
+      `INSERT INTO contacts (id, name, email, phone, location, status, type, joined, totalPurchases, outstanding, lastTx, totalSupplied_g, totalPaid)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      [
+        contactId, 
+        body.name, 
+        body.email || '', 
+        body.phone || '', 
+        body.location || '', 
+        body.status || 'active', 
+        body.type, 
+        new Date().toLocaleDateString('en-US', { month: 'short', day: '2-digit', year: 'numeric' }),
+        body.totalPurchases || 0,
+        body.outstanding || 0,
+        'Never', // lastTx
+        0, // totalSupplied_g
+        0 // totalPaid
+      ]
     );
 
     const newContact = await db.get('SELECT * FROM contacts WHERE id = ?', contactId);

@@ -199,6 +199,8 @@ export async function getDb() {
       if (sql.includes('insert into sites')) MEMORY_DB.sites.push(params);
       if (sql.includes('insert into invoices')) MEMORY_DB.invoices.push(params);
       if (sql.includes('insert into quotations')) MEMORY_DB.quotations.push(params);
+      if (sql.includes('insert into contacts')) MEMORY_DB.contacts.push(params);
+      if (sql.includes('insert into inventory')) MEMORY_DB.inventory.push(params);
       
       if (sql.includes('delete from transactions')) {
         MEMORY_DB.transactions = MEMORY_DB.transactions.filter((t: any) => t[1] !== params[0]);
@@ -206,10 +208,17 @@ export async function getDb() {
       if (sql.includes('delete from sites')) {
         MEMORY_DB.sites = MEMORY_DB.sites.filter((s: any) => s[0] !== params[0]);
       }
+      if (sql.includes('delete from contacts')) {
+        MEMORY_DB.contacts = MEMORY_DB.contacts.filter((c: any) => c[0] !== params[0]);
+      }
       
       if (sql.includes('update transactions set status')) {
         const tx = MEMORY_DB.transactions.find((t: any) => t[1] === params[1]);
         if (tx) tx[6] = params[0];
+      }
+      if (sql.includes('update contacts set status')) {
+        const c = MEMORY_DB.contacts.find((c: any) => c[0] === params[1]);
+        if (c) c[5] = params[0];
       }
       
       // IMMEDIATE PERSISTENCE: Save to JSON and Cloud on every write
@@ -234,7 +243,9 @@ export async function getDb() {
       if (q.includes('from inventory')) return MEMORY_DB.inventory.map((d: any) => ({
         id: d[0], batch: d[1], weight: d[2], karat: d[3], fine: d[4], source: d[5], location: d[6], status: d[7], value: d[8]
       }));
-      if (q.includes('from contacts')) return MEMORY_DB.contacts || [];
+      if (q.includes('from contacts')) return MEMORY_DB.contacts.map((d: any) => ({
+        id: d[0], name: d[1], email: d[2], phone: d[3], location: d[4], status: d[5], type: d[6], joined: d[7], totalPurchases: d[8], outstanding: d[9], lastTx: d[10], totalSupplied_g: d[11], totalPaid: d[12]
+      }));
       return [];
     },
     get: async (sql: string, params: any[]) => {

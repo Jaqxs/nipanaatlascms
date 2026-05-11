@@ -108,10 +108,10 @@ export default function ContactsPage() {
       (s.id || "").toLowerCase().includes(search.toLowerCase()) ||
       (s.email || "").toLowerCase().includes(search.toLowerCase()));
 
-  const totalReceivable = customers.reduce((a, b) => a + b.outstanding, 0);
-  const totalPayable = suppliers.reduce((a, b) => a + b.outstanding, 0);
-  const totalCustomerSpend = customers.reduce((a, b) => a + b.totalPurchases, 0);
-  const totalSupplied_g = suppliers.reduce((a, b) => a + (b as any).totalSupplied_g || 0, 0);
+  const totalReceivable = (customers || []).reduce((a, b) => a + (b?.outstanding || 0), 0);
+  const totalPayable = (suppliers || []).reduce((a, b) => a + (b?.outstanding || 0), 0);
+  const totalCustomerSpend = (customers || []).reduce((a, b) => a + (b?.totalPurchases || 0), 0);
+  const totalSupplied_g = (suppliers || []).reduce((a, b) => a + ((b as any)?.totalSupplied_g || 0), 0);
 
   const filteredCount = tab === "customers" ? customers.length : suppliers.length;
   const resourceLabel = tab === "customers" ? "customers" : "suppliers";
