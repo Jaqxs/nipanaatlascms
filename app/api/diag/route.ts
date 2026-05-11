@@ -27,6 +27,7 @@ export async function GET() {
     connectivity: {
       sqlite: false,
       cloud: false,
+      hub: "pending",
       error: null as string | null
     }
   };
@@ -53,12 +54,12 @@ export async function GET() {
     stats.connectivity.error = stats.connectivity.error || `DB failed: ${e.message}`;
   }
 
-  // 3. Test Cloud Connectivity
+  // 4. Test Hub Connectivity
   try {
-    const res = await fetch('https://backend.nipanaatlas.co.tz/api/diag', { method: 'GET', signal: AbortSignal.timeout(2000) });
-    stats.connectivity.cloud = res.ok;
+    const hubRes = await fetch((process.env.NEXT_PUBLIC_API_URL || 'https://backend.nipanaatlas.co.tz') + '/api/storage', { method: 'GET', signal: AbortSignal.timeout(2000) });
+    stats.connectivity.hub = hubRes.ok ? "connected" : `error (${hubRes.status})`;
   } catch (e: any) {
-    stats.connectivity.cloud = false;
+    stats.connectivity.hub = "unreachable";
   }
 
   return NextResponse.json(stats);
