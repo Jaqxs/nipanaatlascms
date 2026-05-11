@@ -34,9 +34,13 @@ const C = createContext<Ctx | null>(null);
 const MONTHS = ["jan","feb","mar","apr","may","jun","jul","aug","sep","oct","nov","dec"];
 
 export function parseShortDate(s: string, year = TODAY.getFullYear()): Date | null {
-  if (!s) return null;
+  if (!s || typeof s !== 'string') return null;
   const m = s.trim().toLowerCase().match(/^([a-z]{3,})\s+(\d{1,2})$/);
-  if (!m) return null;
+  if (!m) {
+    // Try YYYY-MM-DD fallback
+    const d = new Date(s);
+    return isNaN(d.getTime()) ? null : d;
+  }
   const monthIdx = MONTHS.indexOf(m[1].slice(0, 3));
   if (monthIdx < 0) return null;
   const day = parseInt(m[2], 10);
