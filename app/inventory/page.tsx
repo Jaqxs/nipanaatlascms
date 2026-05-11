@@ -196,11 +196,11 @@ export default function InventoryPage() {  const [tab, setTab] = useState<"batch
               ) : batches.length === 0 ? (
                 <tr><td colSpan={9} className="text-center text-ink-faint py-12">No batches match these filters.</td></tr>
               ) : batches.map((b) => (
-                <tr key={b.batch} className="clickable" onClick={() => setDetail(b)}>
+                <tr key={b.batch || b.id} className="clickable" onClick={() => setDetail(b)}>
                   <td className="font-numeric text-ink">{b.batch}</td>
-                  <td className="font-numeric">{b.weight.toFixed(2)} g</td>
+                  <td className="font-numeric">{(b.weight || 0).toFixed(2)} g</td>
                   <td>{b.karat ? `${b.karat}K` : "Raw"}</td>
-                  <td className="font-numeric">{b.fine.toFixed(2)} g</td>
+                  <td className="font-numeric">{(b.fine || 0).toFixed(2)} g</td>
                   <td className="text-ink-soft">{b.source}</td>
                   <td className="text-ink-muted">{b.location}</td>
                   <td><Badge tone={statusToTone(b.status)}>{b.status}</Badge></td>
@@ -333,8 +333,8 @@ function BatchDetailModal({ batch, onClose, format, formatUSD }: {
             <span className="text-xs text-ink-muted">From {batch.source}</span>
           </div>
           <div className="flex items-baseline gap-3 flex-wrap">
-            <div className="font-numeric text-[32px] text-ink leading-none">{batch.weight.toFixed(2)}<span className="text-base text-ink-muted ml-1">g gross</span></div>
-            <div className="font-numeric text-lg text-ink-soft">{batch.fine.toFixed(2)}<span className="text-xs text-ink-muted ml-1">g fine</span></div>
+            <div className="font-numeric text-[32px] text-ink leading-none">{(batch.weight || 0).toFixed(2)}<span className="text-base text-ink-muted ml-1">g gross</span></div>
+            <div className="font-numeric text-lg text-ink-soft">{(batch.fine || 0).toFixed(2)}<span className="text-xs text-ink-muted ml-1">g fine</span></div>
           </div>
         </div>
         <div className="text-right shrink-0">
@@ -359,7 +359,7 @@ function BatchDetailModal({ batch, onClose, format, formatUSD }: {
                 <span className="w-2 h-2 rounded-full bg-gold-500" />
                 <span className="text-ink-muted text-xs">Fine gold</span>
               </div>
-              <div className="font-numeric text-ink mt-0.5">{batch.fine.toFixed(2)} g</div>
+              <div className="font-numeric text-ink mt-0.5">{(batch.fine || 0).toFixed(2)} g</div>
               <div className="text-[11px] text-ink-faint">{finePct.toFixed(1)}%</div>
             </div>
             <div>
@@ -367,7 +367,7 @@ function BatchDetailModal({ batch, onClose, format, formatUSD }: {
                 <span className="w-2 h-2 rounded-full" style={{ background: "#dcb35a", opacity: 0.5 }} />
                 <span className="text-ink-muted text-xs">Alloy</span>
               </div>
-              <div className="font-numeric text-ink mt-0.5">{alloyWeight.toFixed(2)} g</div>
+              <div className="font-numeric text-ink mt-0.5">{(alloyWeight || 0).toFixed(2)} g</div>
               <div className="text-[11px] text-ink-faint">{(100 - finePct).toFixed(1)}%</div>
             </div>
           </div>
