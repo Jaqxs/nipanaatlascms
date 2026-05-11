@@ -47,9 +47,10 @@ export default function TransactionsPage() {
 
   useEffect(() => {
     fetchTransactions();
-    if (searchParams.get("action") === "new") {
-      setCreating(true);
-    }
+    const action = searchParams.get("action");
+    const query = searchParams.get("search");
+    if (action === "new") setCreating(true);
+    if (query) setSearch(query);
   }, [searchParams]);
 
   const fetchTransactions = async () => {

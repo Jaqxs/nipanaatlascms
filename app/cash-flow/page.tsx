@@ -238,7 +238,14 @@ function CashFlowDetailModal({ flow, onClose, format }: { flow: Flow | null; onC
         <button className="btn-secondary" onClick={onClose}>Close</button>
         <button className="btn-secondary" onClick={() => window.print()}><i className="ri-printer-line" />Print</button>
         <button className="btn-secondary" onClick={() => alert("Reclassification engine initialized. Select new category.")}><i className="ri-edit-line" />Reclassify</button>
-        <button className="btn-primary" onClick={() => alert(`Opening linked record: ${flow.desc}`)}><i className="ri-external-link-line" />Open linked record</button>
+        <button className="btn-primary" onClick={() => {
+          const txRef = flow.desc.split("·").pop()?.trim();
+          if (txRef && txRef.startsWith("TX-")) {
+            window.location.href = `/transactions?search=${txRef}`;
+          } else {
+            alert(`Linked record: ${flow.desc}`);
+          }
+        }}><i className="ri-external-link-line" />Open linked record</button>
       </>}>
       {/* Hero */}
       <div className="surface-flat p-5 mb-5"
