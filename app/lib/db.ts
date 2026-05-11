@@ -23,7 +23,10 @@ let MEMORY_DB: any = {
 let INITIALIZED = false;
 let USE_SQLITE = false;
 
-const DB_PATH = '/app/data/gbms.db';
+// Detect if we are in a container or local
+const IS_CONTAINER = fs.existsSync('/app/data');
+const DB_PATH = IS_CONTAINER ? '/app/data/gbms.db' : path.join(process.cwd(), 'gbms.db');
+
 // THE CLOUD MIRROR: Official GBMS Backend API (configured via env or fallback)
 const CLOUD_URL = (process.env.NEXT_PUBLIC_API_URL || 'https://backend.nipanaatlas.co.tz') + '/api/storage'; 
 
@@ -35,7 +38,7 @@ export async function getDb() {
       if (!sqlite3) sqlite3 = require('sqlite3');
       if (!open) open = require('sqlite').open;
 
-      if (fs.existsSync('/app/data')) {
+      if (true) { // Always try SQLite first
         const db = await open({
           filename: DB_PATH,
           driver: sqlite3.Database
