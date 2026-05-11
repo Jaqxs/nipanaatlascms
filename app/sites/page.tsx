@@ -5,7 +5,6 @@ import { Badge, statusToTone } from "../components/Badge";
 import { Modal } from "../components/Modal";
 import { RowActionsMenu } from "../components/RowActionsMenu";
 import { getApiUrl } from "../lib/config";
-
 import { usePersistence } from "../lib/persistence-context";
 
 interface Site {
@@ -37,7 +36,7 @@ export default function SitesPage() {
     fetchSites();
   }, []);
 
-  const fetchSites = async () => {
+  async function fetchSites() {
     setLoading(true);
     try {
       const res = await fetch(getApiUrl('/api/sites'));
@@ -67,9 +66,9 @@ export default function SitesPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     try {
       const res = await fetch(getApiUrl('/api/sites'), {
@@ -89,9 +88,9 @@ export default function SitesPage() {
     } catch (err) {
       alert("Failed to create site. Check your connection.");
     }
-  };
+  }
 
-  const handleUpdate = async (e: React.FormEvent) => {
+  async function handleUpdate(e: React.FormEvent) {
     e.preventDefault();
     if (!editing) return;
     try {
@@ -107,7 +106,7 @@ export default function SitesPage() {
     } catch (err) {
       alert("Failed to update site");
     }
-  };
+  }
 
   async function handleDelete(id: string) {
     if (!confirm("Are you sure you want to delete this site?")) return;
@@ -170,24 +169,27 @@ export default function SitesPage() {
               <tr><td colSpan={7} className="text-center py-12 text-ink-faint">Loading sites...</td></tr>
             ) : sites.length === 0 ? (
               <tr><td colSpan={7} className="text-center py-12 text-ink-faint">No sites found.</td></tr>
-            ) : sites.map((site) => {
-              if (!site) return null;
-              return (
-                <tr key={site.id}>
-                <td className="font-medium text-ink">{site.name}</td>
-                <td className="text-ink-soft">{site.location}</td>
-                <td className="text-ink-soft">{site.manager}</td>
-                <td className="text-ink-muted">{site.type}</td>
-                <td className="font-numeric text-ink">{site.productionRate} g/day</td>
-                <td><Badge tone={statusToTone(site.status)}>{site.status}</Badge></td>
-                <td className="text-right">
-                  <RowActionsMenu actions={[
-                    { label: "Edit Site", icon: "ri-edit-line", onClick: () => setEditing(site) },
-                    { label: "Delete Site", icon: "ri-delete-bin-line", onClick: () => handleDelete(site.id), danger: true },
-                  ]} />
-                </td>
-              );
-            })}
+            ) : (
+              sites.map((site) => {
+                if (!site) return null;
+                return (
+                  <tr key={site.id}>
+                    <td className="font-medium text-ink">{site.name}</td>
+                    <td className="text-ink-soft">{site.location}</td>
+                    <td className="text-ink-soft">{site.manager}</td>
+                    <td className="text-ink-muted">{site.type}</td>
+                    <td className="font-numeric text-ink">{site.productionRate} g/day</td>
+                    <td><Badge tone={statusToTone(site.status)}>{site.status}</Badge></td>
+                    <td className="text-right">
+                      <RowActionsMenu actions={[
+                        { label: "Edit Site", icon: "ri-edit-line", onClick: () => setEditing(site) },
+                        { label: "Delete Site", icon: "ri-delete-bin-line", onClick: () => handleDelete(site.id), danger: true },
+                      ]} />
+                    </td>
+                  </tr>
+                );
+              })
+            )}
           </tbody>
         </table>
       </div>
