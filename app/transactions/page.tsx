@@ -247,7 +247,12 @@ export default function TransactionsPage() {
         </table>
       </div>
 
-      <TransactionDetailModal tx={detail} onClose={() => setDetail(null)} />
+      <TransactionDetailModal 
+        tx={detail} 
+        onClose={() => setDetail(null)} 
+        onApprove={(tx) => setConfirming({ tx, action: "approve" })}
+        onReject={(tx) => setConfirming({ tx, action: "reject" })}
+      />
 
       <ExportModal open={exportOpen} onClose={() => setExportOpen(false)} resource="transactions" rowCount={filtered.length} />
 

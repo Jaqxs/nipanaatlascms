@@ -22,7 +22,12 @@ const TYPE_META: Record<string, { icon: string; tint: string }> = {
   "Cash Outflow":  { icon: "ri-arrow-up-line",          tint: "#b56b4a" },
 };
 
-export function TransactionDetailModal({ tx, onClose }: { tx: TransactionLike | null; onClose: () => void }) {
+export function TransactionDetailModal({ tx, onClose, onApprove, onReject }: { 
+  tx: TransactionLike | null; 
+  onClose: () => void;
+  onApprove?: (tx: TransactionLike) => void;
+  onReject?: (tx: TransactionLike) => void;
+}) {
   const { format } = useCurrency();
   if (!tx) return null;
 
@@ -35,15 +40,28 @@ export function TransactionDetailModal({ tx, onClose }: { tx: TransactionLike | 
     { label: tx.status === "rejected" ? "Rejected" : "Confirmed", time: "May 04, 09:14", actor: "Julius Assey", role: "Administrator", done: tx.status === "confirmed" || tx.status === "rejected" },
   ];
 
+  const handlePrint = () => {
+    window.print();
+  };
+
   return (
     <Modal open={!!tx} onClose={onClose} size="lg"
       eyebrow="Transaction"
       title={tx.ref}
       footer={<>
         <button className="btn-secondary" onClick={onClose}>Close</button>
-        <button className="btn-secondary" onClick={() => window.print()}><i className="ri-printer-line" />Print</button>
-        <button className="btn-primary" onClick={() => window.print()}><i className="ri-download-line" />Receipt</button>
-        {tx.status === "pending" && <button className="btn-primary"><i className="ri-check-line" />Approve</button>}
+        <button className="btn-secondary" onClick={handlePrint}><i className="ri-printer-line" />Print</button>
+        <button className="btn-primary" onClick={handlePrint}><i className="ri-file-text-line" />Receipt</button>
+        {tx.status === "pending" && (
+          <div className="flex gap-2 ml-auto">
+            <button className="btn-secondary text-rose-700 border-rose-200 hover:bg-rose-50" onClick={() => onReject?.(tx)}>
+              <i className="ri-close-line" /> Reject
+            </button>
+            <button className="btn-primary" onClick={() => onApprove?.(tx)}>
+              <i className="ri-check-line" /> Approve
+            </button>
+          </div>
+        )}
       </>}>
       {/* Hero */}
       <div className="surface-flat p-5 mb-5"
