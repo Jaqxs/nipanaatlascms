@@ -128,7 +128,35 @@ export async function getDb() {
     INITIALIZED = true;
   }
 
+  // 3. ENHANCED PERSISTENCE FALLBACK: JSON STORAGE
+  const JSON_PATH = DB_PATH.replace('.db', '.json');
+  
+  const loadFromJson = () => {
+    try {
+      if (fs.existsSync(JSON_PATH)) {
+        const data = fs.readFileSync(JSON_PATH, 'utf8');
+        MEMORY_DB = { ...MEMORY_DB, ...JSON.parse(data) };
+        console.log("[DATABASE] Persistent JSON data loaded.");
+      }
+    } catch (e) {
+      console.warn("[DATABASE] JSON load failed:", e);
+    }
+  };
+
+  const saveToJson = () => {
+    try {
+      fs.writeFileSync(JSON_PATH, JSON.stringify(MEMORY_DB, null, 2));
+    } catch (e) {
+      console.warn("[DATABASE] JSON save failed:", e);
+    }
+  };
+
+  if (!USE_SQLITE) {
+    loadFromJson();
+  }
+
   const syncToCloud = async () => {
+    saveToJson(); // Always try local file sync first
     try {
       await fetch(CLOUD_URL, {
         method: 'POST',
@@ -136,22 +164,29 @@ export async function getDb() {
         body: JSON.stringify(MEMORY_DB)
       });
     } catch (e: any) {
-      console.warn("[DATABASE] Background Sync failed:", e.message);
+      // Background sync failures are expected if backend is down
     }
   };
 
   // IF SQLITE IS WORKING, RETURN REAL DB WRAPPER
   if (USE_SQLITE) {
-    if (!sqlite3) sqlite3 = require('sqlite3');
-    if (!open) open = require('sqlite').open;
-    const db = await open({ filename: DB_PATH, driver: sqlite3.Database });
-    return db;
+    try {
+      if (!sqlite3) sqlite3 = require('sqlite3');
+      if (!open) open = require('sqlite').open;
+      const db = await open({ filename: DB_PATH, driver: sqlite3.Database });
+      return db;
+    } catch (e) {
+      console.warn("[DATABASE] SQLite wrapper failed late. Switching to JSON/Memory.");
+      USE_SQLITE = false;
+    }
   }
 
-  // FALLBACK: CLOUD MIRROR EMULATOR
+  // FALLBACK: CLOUD/JSON MIRROR EMULATOR
   const mockDb = {
     run: async (sql: string, params: any[]) => {
       const q = sql.toLowerCase();
+      const id = params[0] || Date.now().toString();
+      
       if (q.includes('insert into transactions')) MEMORY_DB.transactions.push(params);
       else if (q.includes('insert into sites')) MEMORY_DB.sites.push(params);
       else if (q.includes('insert into invoices')) MEMORY_DB.invoices.push(params);
@@ -163,13 +198,16 @@ export async function getDb() {
         if (row) row[6] = params[0];
       }
       else if (q.includes('delete from')) {
-        const id = params[0];
-        if (q.includes('transactions')) MEMORY_DB.transactions = MEMORY_DB.transactions.filter((t: any) => t[1] !== id);
-        if (q.includes('sites')) MEMORY_DB.sites = MEMORY_DB.sites.filter((s: any) => s[0] !== id);
+        const delId = params[0];
+        if (q.includes('transactions')) MEMORY_DB.transactions = MEMORY_DB.transactions.filter((t: any) => t[1] !== delId);
+        if (q.includes('sites')) MEMORY_DB.sites = MEMORY_DB.sites.filter((s: any) => s[0] !== delId);
+        if (q.includes('inventory')) MEMORY_DB.inventory = MEMORY_DB.inventory.filter((i: any) => i[0] !== delId);
+        if (q.includes('invoices')) MEMORY_DB.invoices = MEMORY_DB.invoices.filter((inv: any) => inv[0] !== delId);
+        if (q.includes('contacts')) MEMORY_DB.contacts = MEMORY_DB.contacts.filter((c: any) => c.id !== delId);
       }
       
       await syncToCloud();
-      return { lastID: params[0] || Date.now() };
+      return { lastID: id };
     },
     all: async (sql: string) => {
       const q = sql.toLowerCase();
@@ -194,6 +232,10 @@ export async function getDb() {
     get: async (sql: string, params: any[]) => {
       const results = await mockDb.all(sql);
       return results.find((r: any) => r.id === params[0] || r.ref === params[0] || r.no === params[0]) || null;
+    },
+    exec: async (sql: string) => {
+       // Mock exec for initialization
+       return true;
     }
   };
 
