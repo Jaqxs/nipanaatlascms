@@ -27,8 +27,9 @@ export async function POST(request: Request) {
     );
 
     return NextResponse.json({ success: true, id });
-  } catch (error) {
-    return NextResponse.json({ error: 'Failed to create invoice' }, { status: 500 });
+  } catch (error: any) {
+    console.error("[API ERROR] Failed to create invoice:", error.message || error);
+    return NextResponse.json({ error: 'Failed to create invoice', details: error.message }, { status: 500 });
   }
 }
 

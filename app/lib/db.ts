@@ -77,6 +77,27 @@ export async function getDb() {
         
         USE_SQLITE = true;
         console.log("[DATABASE] SQLite connected and ready.");
+
+        // SELF-HEALING: Add missing columns to existing tables
+        const tables = await db.all("SELECT name FROM sqlite_master WHERE type='table'");
+        const tableNames = tables.map(t => t.name);
+
+        if (tableNames.includes('inventory')) {
+          const cols = await db.all("PRAGMA table_info(inventory)");
+          const colNames = cols.map(c => c.name);
+          if (!colNames.includes('batch')) await db.exec("ALTER TABLE inventory ADD COLUMN batch TEXT");
+          if (!colNames.includes('karat')) await db.exec("ALTER TABLE inventory ADD COLUMN karat TEXT");
+          if (!colNames.includes('fine')) await db.exec("ALTER TABLE inventory ADD COLUMN fine REAL");
+          if (!colNames.includes('source')) await db.exec("ALTER TABLE inventory ADD COLUMN source TEXT");
+          if (!colNames.includes('location')) await db.exec("ALTER TABLE inventory ADD COLUMN location TEXT");
+          if (!colNames.includes('value')) await db.exec("ALTER TABLE inventory ADD COLUMN value REAL");
+        }
+        if (tableNames.includes('invoices')) {
+          const cols = await db.all("PRAGMA table_info(invoices)");
+          const colNames = cols.map(c => c.name);
+          if (!colNames.includes('issued')) await db.exec("ALTER TABLE invoices ADD COLUMN issued TEXT");
+          if (!colNames.includes('due')) await db.exec("ALTER TABLE invoices ADD COLUMN due TEXT");
+        }
       }
     } catch (e: any) {
       console.warn("[DATABASE] Local Database engine unavailable (Binary missing or path inaccessible). Falling back to Cloud Mirror.");
