@@ -61,26 +61,25 @@ export default function TransactionsPage() {
     setLoading(true);
     try {
       const res = await fetch(getApiUrl('/api/transactions'));
+      if (!res.ok) throw new Error("API failed");
+      
       const data = await res.json();
-      if (Array.isArray(data) && data.length > 0) {
-        setRows(data);
-        backupData('transactions', data);
+      const validData = Array.isArray(data) ? data.filter(item => item && typeof item === 'object') : [];
+      
+      if (validData.length > 0) {
+        setRows(validData);
+        backupData('transactions', validData);
         setIsUsingBackup(false);
       } else {
-        // Backend returned empty or failed, try backup
-        const backup = getBackup('transactions');
-        if (backup && backup.length > 0) {
-          setRows(backup);
-          setIsUsingBackup(true);
-        } else {
-          setRows([]);
-        }
+        throw new Error("No data");
       }
     } catch (err) {
-      console.error("Failed to fetch transactions:", err);
+      console.warn("Failed to fetch transactions, trying backup:", err);
       const backup = getBackup('transactions');
-      if (backup) {
-        setRows(backup);
+      const validBackup = Array.isArray(backup) ? backup.filter(item => item && typeof item === 'object') : [];
+      
+      if (validBackup.length > 0) {
+        setRows(validBackup);
         setIsUsingBackup(true);
       } else {
         setRows([]);

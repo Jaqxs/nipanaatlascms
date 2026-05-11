@@ -39,11 +39,25 @@ export async function getDb() {
       if (!sqlite3) sqlite3 = require('sqlite3');
       if (!open) open = require('sqlite').open;
 
-      if (true) { // Always try SQLite first
-        const db = await open({
-          filename: DB_PATH,
-          driver: sqlite3.Database
-        });
+      // MULTI-TIER SQLITE CONNECTION
+      let db = null;
+      try {
+        // TIER 1: Primary Data Volume (/app/data)
+        db = await open({ filename: DB_PATH, driver: sqlite3.Database });
+      } catch (e1: any) {
+        console.warn(`[DATABASE] Tier 1 Fail (${DB_PATH}):`, e1.message);
+        try {
+          // TIER 2: Current Directory (./data)
+          const altPath = path.join(process.cwd(), 'data', 'gbms.db');
+          db = await open({ filename: altPath, driver: sqlite3.Database });
+        } catch (e2: any) {
+          console.warn(`[DATABASE] Tier 2 Fail:`, e2.message);
+          // TIER 3: System Tmp (Guaranteed Writable)
+          const tmpPath = '/tmp/gbms.db';
+          db = await open({ filename: tmpPath, driver: sqlite3.Database });
+          console.log("[DATABASE] Tier 3 ACTIVE: Using /tmp for persistence.");
+        }
+      }
         
         // Create tables if missing
         await db.exec(`

@@ -49,8 +49,9 @@ export default function Dashboard() {
         fetch(getApiUrl('/api/dashboard/stats')),
         fetch(getApiUrl('/api/transactions?limit=8'))
       ]);
-      const statsData = await statsRes.json();
-      const txData = await txsRes.json();
+      
+      const statsData = statsRes.ok ? await statsRes.json() : null;
+      const txData = txsRes.ok ? await txsRes.json() : [];
       
       if (statsData && !statsData.error) {
         setStats(statsData);
@@ -60,24 +61,27 @@ export default function Dashboard() {
         if (b) setStats(b);
       }
 
-      if (Array.isArray(txData) && txData.length > 0) {
-        setRecentTx(txData);
-        backupData('transactions', txData);
+      const validTx = Array.isArray(txData) ? txData.filter(item => item && typeof item === 'object') : [];
+      if (validTx.length > 0) {
+        setRecentTx(validTx);
+        backupData('transactions', validTx);
         setIsUsingBackup(false);
       } else {
         const b = getBackup('transactions');
-        if (b) {
-          setRecentTx(b.slice(0, 8));
+        const validBackup = Array.isArray(b) ? b.filter(item => item && typeof item === 'object') : [];
+        if (validBackup.length > 0) {
+          setRecentTx(validBackup.slice(0, 8));
           setIsUsingBackup(true);
         }
       }
     } catch (err) {
-      console.error("Failed to fetch dashboard data:", err);
+      console.warn("Failed to fetch dashboard data, trying backup:", err);
       const bStats = getBackup('dashboard_stats');
       const bTx = getBackup('transactions');
       if (bStats) setStats(bStats);
-      if (bTx) {
-        setRecentTx(bTx.slice(0, 8));
+      const validBackupTx = Array.isArray(bTx) ? bTx.filter(item => item && typeof item === 'object') : [];
+      if (validBackupTx.length > 0) {
+        setRecentTx(validBackupTx.slice(0, 8));
         setIsUsingBackup(true);
       }
     } finally {
