@@ -1,7 +1,9 @@
 import fs from 'fs';
 import path from 'path';
-import sqlite3 from 'sqlite3';
-import { open } from 'sqlite';
+
+// Native modules will be loaded dynamically to avoid crashing the server if binaries are missing
+let sqlite3: any;
+let open: any;
 
 /**
  * GBMS HYBRID-CLOUD DATABASE ENGINE
@@ -29,6 +31,10 @@ export async function getDb() {
   // 1. ATTEMPT SQLITE INITIALIZATION
   if (!INITIALIZED) {
     try {
+      // DYNAMIC LOAD
+      if (!sqlite3) sqlite3 = require('sqlite3');
+      if (!open) open = require('sqlite').open;
+
       if (fs.existsSync('/app/data')) {
         const db = await open({
           filename: DB_PATH,
@@ -48,8 +54,9 @@ export async function getDb() {
         USE_SQLITE = true;
         console.log("[DATABASE] SQLite connected and ready.");
       }
-    } catch (e) {
-      console.warn("[DATABASE] SQLite failed, falling back to Cloud Mirror:", e);
+    } catch (e: any) {
+      console.warn("[DATABASE] Local Database engine unavailable (Binary missing or path inaccessible). Falling back to Cloud Mirror.");
+      console.error(" - Cause:", e.message || e);
     }
 
     // 2. HYDRATION / CLOUD CHECK
@@ -89,6 +96,8 @@ export async function getDb() {
 
   // IF SQLITE IS WORKING, RETURN REAL DB WRAPPER
   if (USE_SQLITE) {
+    if (!sqlite3) sqlite3 = require('sqlite3');
+    if (!open) open = require('sqlite').open;
     const db = await open({ filename: DB_PATH, driver: sqlite3.Database });
     return db;
   }
