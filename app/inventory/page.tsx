@@ -129,18 +129,18 @@ export default function InventoryPage() {  const [tab, setTab] = useState<"batch
   };
 
   const inventoryArray = Array.isArray(inventory) ? inventory : [];
-  const totalWeight = inventoryArray.reduce((a, b) => a + (b.weight || 0), 0);
-  const fineWeight = inventoryArray.reduce((a, b) => a + (b.fine || 0), 0);
-  const totalValue = inventoryArray.reduce((a, b) => a + (b.value || 0), 0);
+  const totalWeight = (inventoryArray || []).reduce((a, b) => a + (b?.weight || 0), 0);
+  const fineWeight = (inventoryArray || []).reduce((a, b) => a + (b?.fine || 0), 0);
+  const totalValue = (inventoryArray || []).reduce((a, b) => a + (b?.value || 0), 0);
   const avgFinePrice = fineWeight > 0 ? (totalValue / fineWeight) : 0;
 
   const PURITIES = ["All", "24K", "22K", "18K", "Raw"];
   const LOCATIONS = ["All", "Vault A", "Vault B", "Processing", "In Transit"];
 
-  const batches = inventoryArray
-    .filter((b) => purity === "All" || (purity === "Raw" ? !b.karat : `${b.karat}K` === purity))
-    .filter((b) => location === "All" || b.location === location)
-    .filter((b) => !search || (b.batch || "").toLowerCase().includes(search.toLowerCase()));
+  const batches = (inventoryArray || [])
+    .filter((b) => !b ? false : (purity === "All" || (purity === "Raw" ? !b.karat : `${b.karat}K` === purity)))
+    .filter((b) => !b ? false : (location === "All" || b.location === location))
+    .filter((b) => !b ? false : (!search || (b.batch || "").toLowerCase().includes(search.toLowerCase())));
 
   return (
     <div>

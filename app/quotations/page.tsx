@@ -130,11 +130,11 @@ export default function QuotationsPage() {
   const quoArray = Array.isArray(quotations) ? quotations : [];
 
   const counts = STATUSES.reduce<Record<string, number>>((acc, s) => {
-    acc[s] = s === "All" ? quoArray.length : quoArray.filter((q) => q.status === s).length;
+    acc[s] = s === "All" ? (quoArray || []).length : (quoArray || []).filter((q) => q?.status === s).length;
     return acc;
   }, {});
 
-  const filtered = tab === "All" ? quoArray : quoArray.filter((q) => q.status === tab);
+  const filtered = tab === "All" ? (quoArray || []) : (quoArray || []).filter((q) => q?.status === tab);
 
   return (
     <div>
@@ -207,9 +207,10 @@ export default function QuotationsPage() {
             {filtered.length === 0 ? (
               <tr><td colSpan={7} className="text-center text-ink-faint py-12">No quotations in this status.</td></tr>
             ) : filtered.map((q) => {
+              if (!q) return null;
               const expired = q.status === "EXPIRED";
               return (
-                <tr key={q.no} className="clickable" onClick={() => setDetail(q)}>
+                <tr key={q.no || q.id} className="clickable" onClick={() => setDetail(q)}>
                   <td className="font-numeric text-ink">{q.no}</td>
                   <td className="text-ink-soft">{q.customer}</td>
                   <td className={expired ? "text-rose-700" : "text-ink-muted"}>

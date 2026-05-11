@@ -170,8 +170,10 @@ export default function SitesPage() {
               <tr><td colSpan={7} className="text-center py-12 text-ink-faint">Loading sites...</td></tr>
             ) : sites.length === 0 ? (
               <tr><td colSpan={7} className="text-center py-12 text-ink-faint">No sites found.</td></tr>
-            ) : sites.map((site) => (
-              <tr key={site.id}>
+            ) : sites.map((site) => {
+              if (!site) return null;
+              return (
+                <tr key={site.id}>
                 <td className="font-medium text-ink">{site.name}</td>
                 <td className="text-ink-soft">{site.location}</td>
                 <td className="text-ink-soft">{site.manager}</td>
