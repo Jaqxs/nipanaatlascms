@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { getDb } from '@/app/lib/db';
 
 export async function GET() {
+  console.log("[STATS] Fetching dashboard statistics...");
   try {
     const db = await getDb();
     
