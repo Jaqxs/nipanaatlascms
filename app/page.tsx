@@ -74,6 +74,7 @@ export default function Dashboard() {
           setRecovering(true);
         }
       }
+    } catch (err) {
       console.warn("Failed to fetch dashboard data, trying backup:", err);
       const msg = err instanceof Error ? err.message : String(err);
       setError(msg);
