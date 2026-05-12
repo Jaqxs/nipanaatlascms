@@ -6,6 +6,7 @@ import { Badge, statusToTone } from "../components/Badge";
 import { Modal } from "../components/Modal";
 import { RowActionsMenu } from "../components/RowActionsMenu";
 import { ExportModal } from "../components/ExportModal";
+import { PersistenceBanner } from "../components/PersistenceBanner";
 import { InventoryAreaChart, StockByPurityChart } from "../components/Charts";
 import { INVENTORY_BATCHES, fmtWeight, GOLD_PRICE } from "../lib/mockData";
 import { useCurrency } from "../lib/currency-context";
@@ -29,8 +30,7 @@ export default function InventoryPage() {  const [tab, setTab] = useState<"batch
   const [confirm, setConfirm] = useState<{ batch: Batch; action: string } | null>(null);
   const [exportOpen, setExportOpen] = useState(false);
   const { format, formatUSD } = useCurrency();
-  const { backupData, getBackup } = usePersistence();
-  const [isUsingBackup, setIsUsingBackup] = useState(false);
+  const { backupData, getBackup, setRecovering, setError } = usePersistence();
 
   const [inventory, setInventory] = useState<Batch[]>([]);
   const [loading, setLoading] = useState(true);
@@ -65,19 +65,23 @@ export default function InventoryPage() {  const [tab, setTab] = useState<"batch
       if (validData.length > 0) {
         setInventory(validData);
         backupData('inventory', validData);
-        setIsUsingBackup(false);
+        setRecovering(false);
       } else {
-        throw new Error("No data");
+        const statusErr = res.status !== 200 ? `Server Error: ${res.status}` : "Invalid data format";
+        setError(statusErr);
+        throw new Error(statusErr);
       }
     } catch (err) {
       console.warn("Failed to fetch inventory, trying backup:", err);
+      const msg = err instanceof Error ? err.message : String(err);
+      setError(msg);
+
       const b = getBackup('inventory');
-      // VALIDATE BACKUP DATA
       const validBackup = Array.isArray(b) ? b.filter(item => item && typeof item === 'object') : [];
       
       if (validBackup.length > 0) {
         setInventory(validBackup);
-        setIsUsingBackup(true);
+        setRecovering(true);
       } else {
         setInventory([]);
       }
@@ -161,20 +165,7 @@ export default function InventoryPage() {  const [tab, setTab] = useState<"batch
         }
       />
 
-      {isUsingBackup && (
-        <div className="bg-amber-50 border border-amber-200 p-4 rounded-xl flex items-center gap-4 mb-6">
-          <div className="w-10 h-10 rounded-full bg-amber-100 flex items-center justify-center shrink-0">
-            <i className="ri-shield-check-line text-xl text-amber-700" />
-          </div>
-          <div>
-            <div className="text-sm font-bold text-amber-900">Operating in Safe Mode (Browser Backup)</div>
-            <div className="text-xs text-amber-700">The primary cloud storage is currently offline. You are viewing your last recorded session from this browser.</div>
-          </div>
-          <button onClick={fetchInventory} className="ml-auto btn-secondary py-1.5 text-xs">
-            <i className="ri-refresh-line" /> Try reconnecting
-          </button>
-        </div>
-      )}
+      <PersistenceBanner onRetry={fetchInventory} />
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
         <div className="surface p-5">
