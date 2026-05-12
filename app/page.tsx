@@ -65,13 +65,13 @@ export default function Dashboard() {
       if (validTx.length > 0) {
         setRecentTx(validTx);
         backupData('transactions', validTx);
-        setIsUsingBackup(false);
+        setRecovering(false);
       } else {
         const b = getBackup('transactions');
         const validBackup = Array.isArray(b) ? b.filter(item => item && typeof item === 'object') : [];
         if (validBackup.length > 0) {
           setRecentTx(validBackup.slice(0, 8));
-          setIsUsingBackup(true);
+          setRecovering(true);
         }
       }
       console.warn("Failed to fetch dashboard data, trying backup:", err);
