@@ -20,7 +20,7 @@ export async function getDb() {
       console.log("[DATABASE] Successfully connected to PostgreSQL.");
       
       // Initialize Tables if missing (Postgres Syntax)
-      // Note: Using camelCase in quotes to maintain compatibility with existing SQLite queries
+      // Using quoted identifiers to support existing camelCase naming conventions
       await pgClient.query(`
         CREATE TABLE IF NOT EXISTS transactions (
           id TEXT PRIMARY KEY, "ref" TEXT, "date" TEXT, "type" TEXT, "party" TEXT, 
@@ -53,27 +53,29 @@ export async function getDb() {
       INITIALIZED = true;
     } catch (e: any) {
       console.error("[DATABASE] PostgreSQL Connection Failed:", e.message);
-      // Fallback to memory or error out to trigger Safe Mode correctly
       throw e;
     }
   }
 
+  // Parameter normalization helper (ensures params is always an array)
+  const norm = (p: any) => (Array.isArray(p) ? p : [p]);
+
   return {
-    all: async (sql: string, params: any[] = []) => {
+    all: async (sql: string, params: any = []) => {
       if (!pgClient) return [];
       let i = 1;
       const pgSql = sql.replace(/\?/g, () => `$${i++}`);
-      const res = await pgClient.query(pgSql, params);
+      const res = await pgClient.query(pgSql, norm(params));
       return res.rows;
     },
-    get: async (sql: string, params: any[] = []) => {
+    get: async (sql: string, params: any = []) => {
       if (!pgClient) return null;
       let i = 1;
       const pgSql = sql.replace(/\?/g, () => `$${i++}`);
-      const res = await pgClient.query(pgSql, params);
+      const res = await pgClient.query(pgSql, norm(params));
       return res.rows[0] || null;
     },
-    run: async (sql: string, params: any[] = []) => {
+    run: async (sql: string, params: any = []) => {
       if (!pgClient) return { lastID: null };
       let i = 1;
       let pgSql = sql.replace(/INSERT OR REPLACE/gi, "INSERT");
@@ -81,19 +83,13 @@ export async function getDb() {
          pgSql += " ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value";
       }
       pgSql = pgSql.replace(/\?/g, () => `$${i++}`);
-      const res = await pgClient.query(pgSql, params);
+      const res = await pgClient.query(pgSql, norm(params));
       return { lastID: Date.now() };
     },
     exec: async (sql: string) => {
       if (!pgClient) return false;
       await pgClient.query(sql);
       return true;
-    },
-    close: async () => {
-      if (pgClient) {
-        await pgClient.end();
-        pgClient = null;
-      }
     }
   };
 }

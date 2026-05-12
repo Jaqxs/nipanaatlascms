@@ -37,7 +37,7 @@ export async function POST(request: Request) {
       [id, ref, body.date, body.type, body.party, body.amount, body.status || 'pending', body.description, body.submittedBy || 'J. Assey']
     );
 
-    const newTx = await db.get('SELECT * FROM transactions WHERE id = ?', id);
+    const newTx = await db.get('SELECT * FROM transactions WHERE id = ?', [id]);
     console.log(`[API] Transaction saved:`, newTx.ref);
     const result = { success: true, id };
     return new NextResponse(JSON.stringify(result), {
