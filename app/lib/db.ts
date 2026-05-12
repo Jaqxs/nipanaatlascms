@@ -6,11 +6,11 @@ import path from 'path';
 let sqlite3: any = sqlite3_lib;
 let open: any = open_db;
 
-let DB_INSTANCE: any = null;
 let INITIALIZED = false;
 let USE_SQLITE = true;
+let USE_POSTGRES = false;
 
-// Shared In-Memory Mirror (for when SQLite fails or for rapid UI response)
+// Shared In-Memory Mirror
 const MEMORY_DB: any = {
   transactions: [],
   sites: [],
@@ -25,46 +25,75 @@ const DB_PATH = process.env.NODE_ENV === 'production'
   ? '/app/data/gbms.db' 
   : path.join(process.cwd(), 'data', 'gbms.db');
 
-// THE CLOUD MIRROR: Official GBMS Backend
 export const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'https://backend.nipanaatlas.co.tz';
-export const FRONTEND_URL = process.env.NEXT_PUBLIC_FRONTEND_URL || 'https://system.nipanaatlas.co.tz';
 const CLOUD_URL = API_BASE_URL + '/api/storage'; 
+const PG_URL = process.env.DATABASE_URL;
 
 export async function getDb() {
+  // 0. POSTGRES PRIORITY (Production Grade)
+  if (PG_URL) {
+    try {
+      const { Client } = require('pg');
+      const client = new Client({ connectionString: PG_URL });
+      await client.connect();
+      
+      // Shim Postgres to look like SQLite for the rest of the app
+      return {
+        all: async (sql: string, params: any[] = []) => {
+          // Convert ? to $n for Postgres
+          let i = 1;
+          const pgSql = sql.replace(/\?/g, () => `$${i++}`);
+          const res = await client.query(pgSql, params);
+          return res.rows;
+        },
+        get: async (sql: string, params: any[] = []) => {
+          let i = 1;
+          const pgSql = sql.replace(/\?/g, () => `$${i++}`);
+          const res = await client.query(pgSql, params);
+          return res.rows[0] || null;
+        },
+        run: async (sql: string, params: any[] = []) => {
+          let i = 1;
+          const pgSql = sql.replace(/\?/g, () => `$${i++}`);
+          const res = await client.query(pgSql, params);
+          return { lastID: res.oid || Date.now() };
+        },
+        exec: async (sql: string) => {
+          await client.query(sql);
+          return true;
+        }
+      };
+    } catch (e) {
+      console.error("[DATABASE] Postgres Connection Failed. Falling back...", e);
+    }
+  }
+
   // 1. ATTEMPT SQLITE INITIALIZATION
   if (!INITIALIZED) {
     try {
-      // DYNAMIC LOAD
       if (!sqlite3) sqlite3 = require('sqlite3');
       if (!open) open = require('sqlite').open;
 
-      // MULTI-TIER SQLITE CONNECTION
       let db = null;
       try {
-        // TIER 1: Primary Data Volume (/app/data)
         db = await open({ filename: DB_PATH, driver: sqlite3.Database });
       } catch (e1: any) {
         console.warn(`[DATABASE] Tier 1 Fail (${DB_PATH}):`, e1.message);
         try {
-          // TIER 2: Current Directory (./data)
           const altPath = path.join(process.cwd(), 'data', 'gbms.db');
           db = await open({ filename: altPath, driver: sqlite3.Database });
         } catch (e2: any) {
           console.warn(`[DATABASE] Tier 2 Fail:`, e2.message);
           try {
-            // TIER 3: System Tmp (Guaranteed Writable)
             const tmpPath = '/tmp/gbms.db';
             db = await open({ filename: tmpPath, driver: sqlite3.Database });
-            console.log("[DATABASE] Tier 3 ACTIVE: Using /tmp for persistence.");
           } catch (e3: any) {
-            console.error("[DATABASE] All SQLite tiers failed.");
             USE_SQLITE = false;
           }
         }
       }
         
       if (db) {
-        // Create tables if missing
         await db.exec(`
           CREATE TABLE IF NOT EXISTS transactions (
             id TEXT PRIMARY KEY, ref TEXT, date TEXT, type TEXT, party TEXT, 
@@ -97,31 +126,9 @@ export async function getDb() {
         
         USE_SQLITE = true;
         console.log("[DATABASE] SQLite connected and ready.");
-
-        // SELF-HEALING: Add missing columns to existing tables
-        const tables = await db.all("SELECT name FROM sqlite_master WHERE type='table'");
-        const tableNames = tables.map((t: any) => t.name);
-
-        if (tableNames.includes('inventory')) {
-          const cols = await db.all("PRAGMA table_info(inventory)");
-          const colNames = cols.map((c: any) => c.name);
-          if (!colNames.includes('batch')) await db.exec("ALTER TABLE inventory ADD COLUMN batch TEXT");
-          if (!colNames.includes('karat')) await db.exec("ALTER TABLE inventory ADD COLUMN karat TEXT");
-          if (!colNames.includes('fine')) await db.exec("ALTER TABLE inventory ADD COLUMN fine REAL");
-          if (!colNames.includes('source')) await db.exec("ALTER TABLE inventory ADD COLUMN source TEXT");
-          if (!colNames.includes('location')) await db.exec("ALTER TABLE inventory ADD COLUMN location TEXT");
-          if (!colNames.includes('value')) await db.exec("ALTER TABLE inventory ADD COLUMN value REAL");
-        }
-        if (tableNames.includes('invoices')) {
-          const cols = await db.all("PRAGMA table_info(invoices)");
-          const colNames = cols.map((c: any) => c.name);
-          if (!colNames.includes('issued')) await db.exec("ALTER TABLE invoices ADD COLUMN issued TEXT");
-          if (!colNames.includes('due')) await db.exec("ALTER TABLE invoices ADD COLUMN due TEXT");
-        }
       }
     } catch (e: any) {
-      console.warn("[DATABASE] Local Database engine unavailable. Falling back to Cloud Mirror.");
-      console.error(" - Cause:", e.message || e);
+      console.warn("[DATABASE] Local SQLite engine unavailable. Using Memory Mirror.");
       USE_SQLITE = false;
     }
 
@@ -137,7 +144,6 @@ export async function getDb() {
         
         if (res.ok) {
           const data = await res.json();
-          // Deep merge into MEMORY_DB
           Object.assign(MEMORY_DB, data);
           console.log("[DATABASE] SUCCESS: Cloud data hydration successful from " + CLOUD_URL);
         } else {
@@ -152,14 +158,7 @@ export async function getDb() {
         if (fs.existsSync(JSON_PATH)) {
           const data = fs.readFileSync(JSON_PATH, 'utf8');
           const localData = JSON.parse(data);
-          Object.keys(localData).forEach(key => {
-            if (Array.isArray(localData[key]) && localData[key].length > 0) {
-              if (!MEMORY_DB[key] || MEMORY_DB[key].length === 0) {
-                MEMORY_DB[key] = localData[key];
-              }
-            }
-          });
-          console.log("[DATABASE] Persistent JSON data merged.");
+          Object.assign(MEMORY_DB, localData);
         }
       } catch (e) {
         console.warn("[DATABASE] JSON load failed:", e);
@@ -174,7 +173,6 @@ export async function getDb() {
     try {
       const dataToSave = JSON.stringify(MEMORY_DB, null, 2);
       fs.writeFileSync(JSON_PATH, dataToSave);
-      console.log("[DATABASE] Local JSON snapshot saved.");
     } catch (e) {
       console.warn("[DATABASE] JSON save failed:", e);
     }
@@ -183,7 +181,6 @@ export async function getDb() {
   const syncToCloud = async () => {
     saveToJson();
     try {
-      console.log("[DATABASE] Syncing to cloud mirror...");
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 8000);
 
@@ -194,21 +191,17 @@ export async function getDb() {
         signal: controller.signal
       });
       clearTimeout(timeoutId);
-      console.log("[DATABASE] Cloud mirror updated.");
     } catch (e: any) {
       console.warn("[DATABASE] Cloud sync skipped:", e.message);
     }
   };
 
-  // IF SQLITE IS WORKING, RETURN REAL DB WRAPPER
   if (USE_SQLITE) {
     try {
       if (!sqlite3) sqlite3 = require('sqlite3');
       if (!open) open = require('sqlite').open;
-      const db = await open({ filename: DB_PATH, driver: sqlite3.Database });
-      return db;
+      return await open({ filename: DB_PATH, driver: sqlite3.Database });
     } catch (e) {
-      console.warn("[DATABASE] SQLite wrapper failed late.");
       USE_SQLITE = false;
     }
   }
@@ -229,17 +222,6 @@ export async function getDb() {
       if (sql.includes('delete from transactions')) {
         MEMORY_DB.transactions = MEMORY_DB.transactions.filter((t: any) => t[1] !== params[0]);
       }
-      if (sql.includes('delete from sites')) {
-        MEMORY_DB.sites = MEMORY_DB.sites.filter((s: any) => s[0] !== params[0]);
-      }
-      if (sql.includes('delete from contacts')) {
-        MEMORY_DB.contacts = MEMORY_DB.contacts.filter((c: any) => c[0] !== params[0]);
-      }
-      
-      if (sql.includes('update transactions set status')) {
-        const tx = MEMORY_DB.transactions.find((t: any) => t[1] === params[1]);
-        if (tx) tx[6] = params[0];
-      }
       
       await syncToCloud();
       return { lastID: id };
@@ -247,10 +229,7 @@ export async function getDb() {
     all: async (sql: string) => {
       const q = sql.toLowerCase();
       const mapData = (data: any[], mapper: (d: any) => any) => {
-        return data.map(d => {
-          if (Array.isArray(d)) return mapper(d);
-          return { ...d };
-        });
+        return data.map(d => Array.isArray(d) ? mapper(d) : { ...d });
       };
 
       if (q.includes('from transactions')) return mapData(MEMORY_DB.transactions, (d: any) => ({
@@ -262,14 +241,8 @@ export async function getDb() {
       if (q.includes('from invoices')) return mapData(MEMORY_DB.invoices, (d: any) => ({
         id: d[0], no: d[1], customer: d[2], issued: d[3], due: d[4], amount: d[5], status: d[6]
       }));
-      if (q.includes('from quotations')) return mapData(MEMORY_DB.quotations, (d: any) => ({
-        id: d[0], no: d[1], customer: d[2], expires: d[3], amount: d[4], status: d[5], createdAt: d[6]
-      }));
       if (q.includes('from inventory')) return mapData(MEMORY_DB.inventory, (d: any) => ({
         id: d[0], batch: d[1], weight: d[2], karat: d[3], fine: d[4], source: d[5], location: d[6], status: d[7], value: d[8]
-      }));
-      if (q.includes('from contacts')) return mapData(MEMORY_DB.contacts, (d: any) => ({
-        id: d[0], name: d[1], email: d[2], phone: d[3], location: d[4], status: d[5], type: d[6], joined: d[7], totalPurchases: d[8], outstanding: d[9], lastTx: d[10], totalSupplied_g: d[11], totalPaid: d[12]
       }));
       return [];
     },
@@ -277,9 +250,7 @@ export async function getDb() {
       const results = await mockDb.all(sql);
       return results.find((r: any) => r.id === params[0] || r.ref === params[0] || r.no === params[0]) || null;
     },
-    exec: async (sql: string) => {
-       return true;
-    }
+    exec: async (sql: string) => true
   };
 
   return mockDb;

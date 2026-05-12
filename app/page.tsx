@@ -22,6 +22,7 @@ import { useRole } from "./lib/role-context";
 import { useCurrency } from "./lib/currency-context";
 import { useDateRange } from "./lib/date-range-context";
 import { usePersistence } from "./lib/persistence-context";
+import { PersistenceBanner } from "./components/PersistenceBanner";
 
 const QUICK_ACTIONS = [
   { label: "Record Sale", icon: "ri-arrow-up-circle-line", href: "/transactions?action=new" },
@@ -39,8 +40,7 @@ export default function Dashboard() {
   const [recentTx, setRecentTx] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
-  const { backupData, getBackup } = usePersistence();
-  const [isUsingBackup, setIsUsingBackup] = useState(false);
+  const { backupData, getBackup, setError, setRecovering, isRecovering } = usePersistence();
 
   const fetchData = async () => {
     setLoading(true);
@@ -74,15 +74,17 @@ export default function Dashboard() {
           setIsUsingBackup(true);
         }
       }
-    } catch (err) {
       console.warn("Failed to fetch dashboard data, trying backup:", err);
+      const msg = err instanceof Error ? err.message : String(err);
+      setError(msg);
+      
       const bStats = getBackup('dashboard_stats');
       const bTx = getBackup('transactions');
       if (bStats) setStats(bStats);
       const validBackupTx = Array.isArray(bTx) ? bTx.filter(item => item && typeof item === 'object') : [];
       if (validBackupTx.length > 0) {
         setRecentTx(validBackupTx.slice(0, 8));
-        setIsUsingBackup(true);
+        setRecovering(true);
       }
     } finally {
       setLoading(false);
@@ -116,20 +118,7 @@ export default function Dashboard() {
         )}
       />
 
-      {isUsingBackup && (
-        <div className="bg-amber-50 border border-amber-200 p-4 rounded-xl flex items-center gap-4 mb-6">
-          <div className="w-10 h-10 rounded-full bg-amber-100 flex items-center justify-center shrink-0">
-            <i className="ri-shield-check-line text-xl text-amber-700" />
-          </div>
-          <div>
-            <div className="text-sm font-bold text-amber-900">Operating in Safe Mode (Browser Backup)</div>
-            <div className="text-xs text-amber-700">The primary cloud storage is currently offline. You are viewing your last recorded session from this browser.</div>
-          </div>
-          <button onClick={fetchData} className="ml-auto btn-secondary py-1.5 text-xs">
-            <i className="ri-refresh-line" /> Try reconnecting
-          </button>
-        </div>
-      )}
+      <PersistenceBanner onRetry={fetchData} />
 
       {/* KPI Row — role-aware */}
       {isAdmin ? (
