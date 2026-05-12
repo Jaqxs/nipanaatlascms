@@ -6,6 +6,7 @@ import { Modal } from "../components/Modal";
 import { RowActionsMenu } from "../components/RowActionsMenu";
 import { ExportModal } from "../components/ExportModal";
 import { CUSTOMERS, SUPPLIERS, Customer, Supplier, fmtWeight } from "../lib/mockData";
+import { PersistenceBanner } from "../components/PersistenceBanner";
 import { useCurrency } from "../lib/currency-context";
 import { getApiUrl } from "../lib/config";
 
@@ -16,8 +17,7 @@ type Tab = "customers" | "suppliers";
 export default function ContactsPage() {
   const [contacts, setContacts] = useState<(Customer | Supplier)[]>([]);
   const [loading, setLoading] = useState(true);
-  const { backupData, getBackup } = usePersistence();
-  const [isUsingBackup, setIsUsingBackup] = useState(false);
+  const { backupData, getBackup, setRecovering, setError } = usePersistence();
   const [formData, setFormData] = useState({
     name: "",
     email: "",
@@ -47,22 +47,27 @@ export default function ContactsPage() {
       if (Array.isArray(data) && data.length > 0) {
         setContacts(data);
         backupData('contacts', data);
-        setIsUsingBackup(false);
+        setRecovering(false);
       } else {
+        const statusErr = res.status !== 200 ? `Server Error: ${res.status}` : "Invalid data format";
+        setError(statusErr);
         const b = getBackup('contacts');
         if (b) {
           setContacts(b);
-          setIsUsingBackup(true);
+          setRecovering(true);
         } else {
           setContacts([]);
         }
       }
     } catch (err) {
       console.error("Failed to fetch contacts:", err);
+      const msg = err instanceof Error ? err.message : String(err);
+      setError(msg);
+
       const b = getBackup('contacts');
       if (b) {
         setContacts(b);
-        setIsUsingBackup(true);
+        setRecovering(true);
       } else {
         setContacts([]);
       }
@@ -133,20 +138,7 @@ export default function ContactsPage() {
         }
       />
 
-      {isUsingBackup && (
-        <div className="bg-amber-50 border border-amber-200 p-4 rounded-xl flex items-center gap-4 mb-6">
-          <div className="w-10 h-10 rounded-full bg-amber-100 flex items-center justify-center shrink-0">
-            <i className="ri-shield-check-line text-xl text-amber-700" />
-          </div>
-          <div>
-            <div className="text-sm font-bold text-amber-900">Operating in Safe Mode (Browser Backup)</div>
-            <div className="text-xs text-amber-700">The primary cloud storage is currently offline. You are viewing your last recorded session from this browser.</div>
-          </div>
-          <button onClick={fetchContacts} className="ml-auto btn-secondary py-1.5 text-xs">
-            <i className="ri-refresh-line" /> Try reconnecting
-          </button>
-        </div>
-      )}
+      <PersistenceBanner onRetry={fetchContacts} />
 
       {/* Top metrics */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">

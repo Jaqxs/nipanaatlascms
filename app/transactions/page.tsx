@@ -7,6 +7,7 @@ import { Modal } from "../components/Modal";
 import { RowActionsMenu } from "../components/RowActionsMenu";
 import { ExportModal } from "../components/ExportModal";
 import { TransactionDetailModal } from "../components/TransactionDetailModal";
+import { PersistenceBanner } from "../components/PersistenceBanner";
 import { RECENT_TX } from "../lib/mockData";
 import { useCurrency } from "../lib/currency-context";
 import { useDateRange } from "../lib/date-range-context";
@@ -54,8 +55,7 @@ export default function TransactionsPage() {
     if (query) setSearch(query);
   }, [searchParams]);
 
-  const { backupData, getBackup } = usePersistence();
-  const [isUsingBackup, setIsUsingBackup] = useState(false);
+  const { backupData, getBackup, setRecovering, setError } = usePersistence();
 
   const fetchTransactions = async () => {
     setLoading(true);
@@ -69,18 +69,23 @@ export default function TransactionsPage() {
       if (validData.length > 0) {
         setRows(validData);
         backupData('transactions', validData);
-        setIsUsingBackup(false);
+        setRecovering(false);
       } else {
-        throw new Error("No data");
+        const statusErr = res.status !== 200 ? `Server Error: ${res.status}` : "Invalid data format";
+        setError(statusErr);
+        throw new Error(statusErr);
       }
     } catch (err) {
       console.warn("Failed to fetch transactions, trying backup:", err);
+      const msg = err instanceof Error ? err.message : String(err);
+      setError(msg);
+
       const backup = getBackup('transactions');
       const validBackup = Array.isArray(backup) ? backup.filter(item => item && typeof item === 'object') : [];
       
       if (validBackup.length > 0) {
         setRows(validBackup);
-        setIsUsingBackup(true);
+        setRecovering(true);
       } else {
         setRows([]);
       }
@@ -185,20 +190,7 @@ export default function TransactionsPage() {
         }
       />
 
-      {isUsingBackup && (
-        <div className="bg-amber-50 border border-amber-200 p-4 rounded-xl flex items-center gap-4 mb-6">
-          <div className="w-10 h-10 rounded-full bg-amber-100 flex items-center justify-center shrink-0">
-            <i className="ri-shield-check-line text-xl text-amber-700" />
-          </div>
-          <div>
-            <div className="text-sm font-bold text-amber-900">Operating in Safe Mode (Browser Backup)</div>
-            <div className="text-xs text-amber-700">The primary cloud storage is currently offline. You are viewing your last recorded session from this browser.</div>
-          </div>
-          <button onClick={fetchTransactions} className="ml-auto btn-secondary py-1.5 text-xs">
-            <i className="ri-refresh-line" /> Try reconnecting
-          </button>
-        </div>
-      )}
+      <PersistenceBanner onRetry={fetchTransactions} />
 
       {/* Compact filter row with dropdowns */}
       <div className="surface-flat p-3 flex flex-wrap items-center gap-3 mb-5">

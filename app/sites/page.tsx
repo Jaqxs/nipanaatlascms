@@ -6,6 +6,7 @@ import { Modal } from "../components/Modal";
 import { RowActionsMenu } from "../components/RowActionsMenu";
 import { getApiUrl } from "../lib/config";
 import { usePersistence } from "../lib/persistence-context";
+import { PersistenceBanner } from "../components/PersistenceBanner";
 
 interface Site {
   id: string;
@@ -20,8 +21,7 @@ interface Site {
 export default function SitesPage() {
   const [sites, setSites] = useState<Site[]>([]);
   const [loading, setLoading] = useState(true);
-  const { backupData, getBackup } = usePersistence();
-  const [isUsingBackup, setIsUsingBackup] = useState(false);
+  const { backupData, getBackup, setRecovering, setError } = usePersistence();
   const [editing, setEditing] = useState<Site | null>(null);
   const [creating, setCreating] = useState(false);
   const [formData, setFormData] = useState({
@@ -48,18 +48,23 @@ export default function SitesPage() {
       if (validData.length > 0) {
         setSites(validData);
         backupData('sites', validData);
-        setIsUsingBackup(false);
+        setRecovering(false);
       } else {
-        throw new Error("No data");
+        const statusErr = res.status !== 200 ? `Server Error: ${res.status}` : "Invalid data format";
+        setError(statusErr);
+        throw new Error(statusErr);
       }
     } catch (err) {
       console.warn("Failed to fetch sites, trying backup:", err);
+      const msg = err instanceof Error ? err.message : String(err);
+      setError(msg);
+
       const b = getBackup('sites');
       const validBackup = Array.isArray(b) ? b.filter(item => item && typeof item === 'object' && item.id) : [];
       
       if (validBackup.length > 0) {
         setSites(validBackup);
-        setIsUsingBackup(true);
+        setRecovering(true);
       } else {
         setSites([]);
       }
@@ -136,20 +141,7 @@ export default function SitesPage() {
         }
       />
 
-      {isUsingBackup && (
-        <div className="bg-amber-50 border border-amber-200 p-4 rounded-xl flex items-center gap-4 mb-6">
-          <div className="w-10 h-10 rounded-full bg-amber-100 flex items-center justify-center shrink-0">
-            <i className="ri-shield-check-line text-xl text-amber-700" />
-          </div>
-          <div>
-            <div className="text-sm font-bold text-amber-900">Operating in Safe Mode (Browser Backup)</div>
-            <div className="text-xs text-amber-700">The primary cloud storage is currently offline. You are viewing your last recorded session from this browser.</div>
-          </div>
-          <button onClick={fetchSites} className="ml-auto btn-secondary py-1.5 text-xs">
-            <i className="ri-refresh-line" /> Try reconnecting
-          </button>
-        </div>
-      )}
+      <PersistenceBanner onRetry={fetchSites} />
 
       <div className="surface mt-6">
         <table className="ledger">
