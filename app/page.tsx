@@ -58,6 +58,8 @@ export default function Dashboard() {
         setStats(statsData);
         backupData('dashboard_stats', statsData);
       } else {
+        const statusErr = statsRes.status !== 200 ? `Server Error: ${statsRes.status}` : "Invalid data format";
+        setError(statusErr);
         const b = getBackup('dashboard_stats');
         if (b) setStats(b);
       }
