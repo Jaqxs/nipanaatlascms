@@ -14,8 +14,13 @@ export async function GET() {
   };
 
   try {
+    reports.storage = {};
     // 1. Check Filesystem
-    reports.storage.dataFolder = fs.existsSync('/app/data') ? 'EXISTS' : 'MISSING';
+    try {
+      reports.storage.dataFolder = fs.existsSync('/app/data') ? 'EXISTS' : 'MISSING';
+    } catch (e) {
+      reports.storage.error = 'FS_CHECK_FAILED';
+    }
     
     // 2. Check Prisma Client
     try {
@@ -32,19 +37,21 @@ export async function GET() {
     }
 
     // 3. Check Database Tables
-    const db = await getDb();
-    reports.database = { mode: db.mode };
-    
-    const tables = ['transactions', 'inventory', 'contacts', 'sites', 'settings'];
-    reports.database.tables = {};
-
-    for (const table of tables) {
-      try {
-        const count: any = await prisma.$queryRawUnsafe(`SELECT COUNT(*) FROM "${table}"`);
-        reports.database.tables[table] = { status: 'EXISTS', count: Number(count[0]?.count || 0) };
-      } catch (e: any) {
-        reports.database.tables[table] = { status: 'MISSING or ERROR', error: e.message };
+    try {
+      const db = await getDb();
+      reports.database = { mode: db.mode, tables: {} };
+      
+      const tables = ['transactions', 'inventory', 'contacts', 'sites', 'settings'];
+      for (const table of tables) {
+        try {
+          const count: any = await prisma.$queryRawUnsafe(`SELECT COUNT(*) FROM "${table}"`);
+          reports.database.tables[table] = { status: 'EXISTS', count: Number(count[0]?.count || 0) };
+        } catch (e: any) {
+          reports.database.tables[table] = { status: 'MISSING or ERROR', error: e.message };
+        }
       }
+    } catch (e) {
+      reports.database = { status: 'INITIALIZATION_FAILED' };
     }
 
     // 4. Check Cloud Connectivity
