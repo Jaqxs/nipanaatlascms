@@ -25,14 +25,13 @@ export async function GET() {
       canWrite: false
     },
     connectivity: {
-      sqlite: false,
-      cloud: false,
+      mode: 'pending',
       hub: "pending",
       error: null as string | null
     }
   };
 
-  // 1. Test Writability
+  // 1. Test Writability... (same as before)
   try {
     const testFile = path.join(path.dirname(dbPath), '.write-test');
     fs.writeFileSync(testFile, 'test');
@@ -43,18 +42,17 @@ export async function GET() {
     stats.connectivity.error = `Write failed: ${e.message}`;
   }
 
-  // 2. Test SQLite / Internal Logic
+  // 2. Test DB / Mode
   try {
     const db = await getDb();
+    stats.connectivity.mode = db.mode;
     const txCount = await db.all('SELECT count(*) as count FROM transactions').catch(() => []);
-    stats.connectivity.sqlite = true;
     stats.dbRecords = txCount;
   } catch (e: any) {
-    stats.connectivity.sqlite = false;
-    stats.connectivity.error = stats.connectivity.error || `DB failed: ${e.message}`;
+    stats.connectivity.error = stats.connectivity.error || `DB logic failed: ${e.message}`;
   }
 
-  // 4. Test Hub Connectivity
+  // 4. Test Hub Connectivity (External)
   try {
     const hubRes = await fetch((process.env.NEXT_PUBLIC_API_URL || 'https://system.nipanaatlas.co.tz') + '/api/storage', { method: 'GET', signal: AbortSignal.timeout(2000) });
     stats.connectivity.hub = hubRes.ok ? "connected" : `error (${hubRes.status})`;
