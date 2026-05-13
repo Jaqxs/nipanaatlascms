@@ -1,6 +1,7 @@
 'use client'
 
 import React, { createContext, useContext, useEffect, useState } from 'react';
+import { getApiUrl } from './config';
 
 interface PersistenceCtx {
   lastSync: string | null;
@@ -25,7 +26,7 @@ export function PersistenceProvider({ children }: { children: React.ReactNode })
     // Background diagnostic loop
     const checkStatus = async () => {
       try {
-        const res = await fetch('/api/diag');
+        const res = await fetch(getApiUrl('/api/diag'));
         if (res.ok) {
           const diag = await res.json();
           if (diag.connectivity.hub === "connected") {
