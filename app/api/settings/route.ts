@@ -4,7 +4,7 @@ import { getDb } from '@/app/lib/db';
 export async function GET() {
   try {
     const db = await getDb();
-    const settingsRows = await db.all('SELECT * FROM settings');
+    const settingsRows = await db.all('SELECT * FROM settings') as any[];
     const settings: any = {};
     settingsRows.forEach((row: any) => {
       settings[row.key] = JSON.parse(row.value);

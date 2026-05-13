@@ -7,7 +7,8 @@ export async function getDb() {
     // This allows the app to work without refactoring every single page
     all: async (sql: string, params: any = []) => {
       const pgSql = sql.replace(/\?/g, (_, i) => `$${i + 1}`);
-      return await prisma.$queryRawUnsafe(pgSql, ...params);
+      const rows: any[] = await prisma.$queryRawUnsafe(pgSql, ...params);
+      return rows;
     },
     get: async (sql: string, params: any = []) => {
       const pgSql = sql.replace(/\?/g, (_, i) => `$${i + 1}`);

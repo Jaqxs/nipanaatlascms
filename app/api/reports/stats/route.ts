@@ -6,13 +6,13 @@ export async function GET() {
     const db = await getDb();
     
     // 1. Transactions stats
-    const txs = await db.all("SELECT type, amount, status, date FROM transactions");
+    const txs = await db.all("SELECT type, amount, status, date FROM transactions") as any[];
     
     // 2. Invoices stats
-    const invoices = await db.all("SELECT status, amount FROM invoices");
+    const invoices = await db.all("SELECT status, amount FROM invoices") as any[];
     
     // 3. Inventory stats
-    const inventory = await db.all("SELECT weight, karat, value FROM inventory");
+    const inventory = await db.all("SELECT weight, karat, value FROM inventory") as any[];
 
     // Aggregates
     const stats = {
