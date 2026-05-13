@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { getDb } from '@/app/lib/db';
+import { prisma } from '@/app/lib/prisma';
 import fs from 'fs';
 
 export const dynamic = 'force-dynamic';
@@ -8,34 +9,42 @@ export async function GET() {
   const reports: any = {
     timestamp: new Date().toISOString(),
     env: process.env.NODE_ENV,
+    database_url_configured: !!process.env.DATABASE_URL,
     storage: {}
   };
 
   try {
     // 1. Check Filesystem
     reports.storage.dataFolder = fs.existsSync('/app/data') ? 'EXISTS' : 'MISSING';
+    
+    // 2. Check Prisma Client
     try {
-      if (fs.existsSync('/app/data')) {
-        fs.writeFileSync('/app/data/diag_test.txt', 'OK');
-        reports.storage.writeTest = 'SUCCESS';
-      } else {
-        reports.storage.writeTest = 'SKIPPED: Folder missing';
-      }
+      reports.prisma = {
+        client_version: '5.16.1',
+        connection_test: 'PENDING'
+      };
+      await prisma.$connect();
+      reports.prisma.connection_test = 'SUCCESS';
     } catch (e: any) {
-      reports.storage.writeTest = 'FAILED: ' + e.message;
+      reports.prisma.connection_test = 'FAILED';
+      reports.prisma.connection_error = e.message;
+      reports.prisma.error_code = e.code;
     }
 
-    // 2. Check Database
+    // 3. Check Database Tables
     const db = await getDb();
-    reports.database = { type: db && (db as any).exec ? 'SQLite' : 'Cloud Mirror' };
+    reports.database = { mode: db.mode };
     
-    // 3. Test Query
-    try {
-      const txs = await db.all('SELECT * FROM transactions LIMIT 1');
-      reports.database.queryTest = 'SUCCESS';
-      reports.database.recordCount = txs.length;
-    } catch (e: any) {
-      reports.database.queryTest = 'FAILED: ' + e.message;
+    const tables = ['transactions', 'inventory', 'contacts', 'sites', 'settings'];
+    reports.database.tables = {};
+
+    for (const table of tables) {
+      try {
+        const count: any = await prisma.$queryRawUnsafe(`SELECT COUNT(*) FROM "${table}"`);
+        reports.database.tables[table] = { status: 'EXISTS', count: Number(count[0]?.count || 0) };
+      } catch (e: any) {
+        reports.database.tables[table] = { status: 'MISSING or ERROR', error: e.message };
+      }
     }
 
     // 4. Check Cloud Connectivity
@@ -47,7 +56,8 @@ export async function GET() {
     }
 
   } catch (e: any) {
-    reports.error = e.message;
+    reports.global_error = e.message;
+    reports.stack = e.stack;
   }
 
   return NextResponse.json(reports);
