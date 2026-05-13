@@ -5,7 +5,8 @@ export async function getDb() {
     mode: 'postgres',
     all: async (sql: string, params: any = []) => {
       try {
-        const pgSql = sql.replace(/\?/g, (_, i) => `$${i + 1}`);
+        let i = 0;
+        const pgSql = sql.replace(/\?/g, () => `$${++i}`);
         const rows: any[] = await prisma.$queryRawUnsafe(pgSql, ...params);
         return rows;
       } catch (err: any) {
@@ -15,7 +16,8 @@ export async function getDb() {
     },
     get: async (sql: string, params: any = []) => {
       try {
-        const pgSql = sql.replace(/\?/g, (_, i) => `$${i + 1}`);
+        let i = 0;
+        const pgSql = sql.replace(/\?/g, () => `$${++i}`);
         const rows: any[] = await prisma.$queryRawUnsafe(pgSql, ...params);
         return rows[0] || null;
       } catch (err: any) {
@@ -29,7 +31,8 @@ export async function getDb() {
         if (pgSql.toLowerCase().includes("settings")) {
            pgSql += " ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value";
         }
-        pgSql = pgSql.replace(/\?/g, (_, i) => `$${i + 1}`);
+        let i = 0;
+        pgSql = pgSql.replace(/\?/g, () => `$${++i}`);
         await prisma.$executeRawUnsafe(pgSql, ...params);
         return { lastID: Date.now() };
       } catch (err: any) {
