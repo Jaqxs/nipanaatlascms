@@ -50,5 +50,5 @@ EXPOSE 3000
 ENV PORT=3000
 ENV HOSTNAME="0.0.0.0"
 
-# Start script that ensures migrations are applied and then starts the server
-CMD ["sh", "-c", "echo 'GBMS: Applying migrations...' && npx prisma migrate deploy && echo 'GBMS: Starting server...' && node server.js"]
+# Start script that ensures schema is pushed and then starts the server
+CMD ["sh", "-c", "echo 'GBMS: Pushing schema...' && npx prisma db push --accept-data-loss && echo 'GBMS: Starting server...' && node server.js"]
