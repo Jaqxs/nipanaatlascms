@@ -55,6 +55,15 @@ export async function GET() {
       reports.cloud = { status: 'ERROR', message: e.message };
     }
 
+    // 5. Check Connection String (Redacted)
+    const dbUrl = process.env.DATABASE_URL || '';
+    reports.database_config = {
+      configured: !!dbUrl,
+      host: dbUrl.split('@')[1]?.split(':')[0] || 'UNKNOWN',
+      port: dbUrl.split(':')[3]?.split('/')[0] || 'UNKNOWN',
+      protocol: dbUrl.split(':')[0] || 'UNKNOWN'
+    };
+
   } catch (e: any) {
     reports.global_error = e.message;
     reports.stack = e.stack;
