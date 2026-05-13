@@ -1,5 +1,5 @@
-# Use Node.js 18 as the base image
-FROM node:20-alpine AS base
+# Use Node.js 22 as the base image
+FROM node:22-alpine AS base
 RUN apk add --no-cache openssl
 
 # Install dependencies only when needed
