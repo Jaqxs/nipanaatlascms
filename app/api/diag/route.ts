@@ -8,62 +8,43 @@ export const dynamic = 'force-dynamic';
 export async function GET() {
   const isContainer = fs.existsSync('/app/data');
   const dbPath = isContainer ? '/app/data/gbms.db' : path.join(process.cwd(), 'gbms.db');
-  const jsonPath = dbPath.replace('.db', '.json');
   
   const stats: any = {
     time: new Date().toISOString(),
-    environment: {
-      isContainer,
-      dbPath,
-      jsonPath,
-      nodeEnv: process.env.NODE_ENV,
-      cwd: process.cwd()
-    },
+    status: "STANDALONE_MODE",
     storage: {
-      dbExists: fs.existsSync(dbPath),
-      jsonExists: fs.existsSync(jsonPath),
+      dbPath,
+      exists: fs.existsSync(dbPath),
       canWrite: false
     },
     connectivity: {
-      mode: 'pending',
-      hub: "pending",
+      db: "checking",
       error: null as string | null
     }
   };
 
-  // 1. Test Writability... (same as before)
   try {
     const testFile = path.join(path.dirname(dbPath), '.write-test');
     fs.writeFileSync(testFile, 'test');
     fs.unlinkSync(testFile);
     stats.storage.canWrite = true;
   } catch (e: any) {
-    stats.storage.canWrite = false;
-    stats.connectivity.error = `Write failed: ${e.message}`;
+    stats.connectivity.error = `Write permission denied: ${e.message}`;
   }
 
-  // 2. Test DB / Mode
   try {
     const db = await getDb();
-    stats.connectivity.mode = db.mode;
-    const txCount = await db.all('SELECT count(*) as count FROM transactions').catch(() => []);
+    const txCount = await db.all('SELECT count(*) as count FROM transactions');
+    stats.connectivity.db = "connected";
     stats.dbRecords = txCount;
   } catch (e: any) {
-    stats.connectivity.error = stats.connectivity.error || `DB logic failed: ${e.message}`;
-  }
-
-  // 4. Test Hub Connectivity (External)
-  try {
-    const hubRes = await fetch((process.env.NEXT_PUBLIC_API_URL || 'https://system.nipanaatlas.co.tz') + '/api/storage', { method: 'GET', signal: AbortSignal.timeout(2000) });
-    stats.connectivity.hub = hubRes.ok ? "connected" : `error (${hubRes.status})`;
-  } catch (e: any) {
-    stats.connectivity.hub = "unreachable";
+    stats.connectivity.db = "error";
+    stats.connectivity.error = stats.connectivity.error || `Database error: ${e.message}`;
   }
 
   return new NextResponse(JSON.stringify(stats), {
     status: 200,
     headers: {
-      'Access-Control-Allow-Origin': '*',
       'Content-Type': 'application/json',
     }
   });

@@ -1,13 +1,11 @@
 'use client'
 
 import React, { createContext, useContext, useEffect, useState } from 'react';
-import { getApiUrl } from './config';
 
 interface PersistenceCtx {
   lastSync: string | null;
   isRecovering: boolean;
   errorDetail: string | null;
-  dbMode: 'postgres' | 'sqlite' | 'pending';
   backupData: (key: string, data: any) => void;
   getBackup: (key: string) => any | null;
   setError: (msg: string | null) => void;
@@ -20,36 +18,9 @@ export function PersistenceProvider({ children }: { children: React.ReactNode })
   const [lastSync, setLastSync] = useState<string | null>(null);
   const [isRecovering, setIsRecovering] = useState(false);
   const [errorDetail, setErrorDetail] = useState<string | null>(null);
-  const [dbMode, setDbMode] = useState<'postgres' | 'sqlite' | 'pending'>('pending');
 
   useEffect(() => {
     setLastSync(localStorage.getItem('gbms_last_sync'));
-
-    // Background diagnostic loop
-    const checkStatus = async () => {
-      try {
-        const res = await fetch(getApiUrl('/api/diag'));
-        if (res.ok) {
-          const diag = await res.json();
-          if (diag.connectivity.hub === "connected") {
-            setErrorDetail(null);
-          } else {
-            const error = diag.connectivity.error || `Hub Status: ${diag.connectivity.hub}`;
-            setErrorDetail(error);
-          }
-          if (diag.connectivity.mode) {
-            setDbMode(diag.connectivity.mode);
-          }
-        }
-      } catch (e) {
-        // Only set error if we were already in a failing state or if it's a network error
-        console.warn("[PERSISTENCE] Diagnostic check failed.");
-      }
-    };
-
-    checkStatus();
-    const timer = setInterval(checkStatus, 15000); // Check every 15s
-    return () => clearInterval(timer);
   }, []);
 
   const backupData = (key: string, data: any) => {
@@ -75,7 +46,6 @@ export function PersistenceProvider({ children }: { children: React.ReactNode })
       lastSync, 
       isRecovering, 
       errorDetail, 
-      dbMode,
       backupData, 
       getBackup, 
       setError: setErrorDetail,
