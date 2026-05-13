@@ -29,7 +29,7 @@ export default function RootLayout({
             <span className="w-1.5 h-1.5 rounded-full bg-cyan-400 animate-ping" />
             CLOUD MIRROR SYSTEM ACTIVE
           </span>
-          <span className="opacity-50 tracking-normal">v6.0-CYBERPUNK</span>
+          <span className="opacity-50 tracking-normal">v0.2.0-NUCLEAR</span>
         </div>
         <AuthProvider>
           <RoleProvider>
