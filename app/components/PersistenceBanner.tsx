@@ -5,7 +5,7 @@ import { usePersistence } from '@/app/lib/persistence-context';
 import { API_BASE_URL } from '@/app/lib/config';
 
 export function PersistenceBanner({ onRetry }: { onRetry: () => void }) {
-  const { isRecovering, errorDetail } = usePersistence();
+  const { isRecovering, errorDetail, dbMode } = usePersistence();
 
   if (!isRecovering) return null;
 
@@ -17,7 +17,9 @@ export function PersistenceBanner({ onRetry }: { onRetry: () => void }) {
       <div className="flex-1">
         <div className="text-sm font-bold text-amber-900 flex items-center gap-2">
           Operating in Safe Mode (Browser Backup)
-          <span className="bg-amber-200 text-amber-800 text-[10px] px-1.5 py-0.5 rounded font-mono uppercase tracking-tighter">Local Persistence Active</span>
+          <span className={`text-[10px] px-1.5 py-0.5 rounded font-mono uppercase tracking-tighter ${dbMode === 'postgres' ? 'bg-green-100 text-green-800' : 'bg-amber-200 text-amber-800'}`}>
+            {dbMode === 'postgres' ? 'Hub Connected' : 'Local Persistence Active'}
+          </span>
         </div>
         <div className="text-xs text-amber-700 mt-0.5">
           {errorDetail ? (

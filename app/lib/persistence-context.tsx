@@ -7,6 +7,7 @@ interface PersistenceCtx {
   lastSync: string | null;
   isRecovering: boolean;
   errorDetail: string | null;
+  dbMode: 'postgres' | 'sqlite' | 'pending';
   backupData: (key: string, data: any) => void;
   getBackup: (key: string) => any | null;
   setError: (msg: string | null) => void;
@@ -19,6 +20,7 @@ export function PersistenceProvider({ children }: { children: React.ReactNode })
   const [lastSync, setLastSync] = useState<string | null>(null);
   const [isRecovering, setIsRecovering] = useState(false);
   const [errorDetail, setErrorDetail] = useState<string | null>(null);
+  const [dbMode, setDbMode] = useState<'postgres' | 'sqlite' | 'pending'>('pending');
 
   useEffect(() => {
     setLastSync(localStorage.getItem('gbms_last_sync'));
@@ -32,9 +34,11 @@ export function PersistenceProvider({ children }: { children: React.ReactNode })
           if (diag.connectivity.hub === "connected") {
             setErrorDetail(null);
           } else {
-            // Surface specific internal errors (e.g. DB failures)
             const error = diag.connectivity.error || `Hub Status: ${diag.connectivity.hub}`;
             setErrorDetail(error);
+          }
+          if (diag.connectivity.mode) {
+            setDbMode(diag.connectivity.mode);
           }
         }
       } catch (e) {
@@ -71,6 +75,7 @@ export function PersistenceProvider({ children }: { children: React.ReactNode })
       lastSync, 
       isRecovering, 
       errorDetail, 
+      dbMode,
       backupData, 
       getBackup, 
       setError: setErrorDetail,
