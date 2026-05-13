@@ -56,7 +56,7 @@ export async function GET() {
 
   // 4. Test Hub Connectivity
   try {
-    const hubRes = await fetch((process.env.NEXT_PUBLIC_API_URL || 'https://backend.nipanaatlas.co.tz') + '/api/storage', { method: 'GET', signal: AbortSignal.timeout(2000) });
+    const hubRes = await fetch((process.env.NEXT_PUBLIC_API_URL || 'https://system.nipanaatlas.co.tz') + '/api/storage', { method: 'GET', signal: AbortSignal.timeout(2000) });
     stats.connectivity.hub = hubRes.ok ? "connected" : `error (${hubRes.status})`;
   } catch (e: any) {
     stats.connectivity.hub = "unreachable";

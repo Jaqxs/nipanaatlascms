@@ -1,9 +1,9 @@
-/**
+ /**
  * GBMS GLOBAL CONFIGURATION
  */
 
 // The Sync Hub URL (Your Dokploy backend)
-export const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'https://backend.nipanaatlas.co.tz';
+export const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'https://system.nipanaatlas.co.tz';
 export const FRONTEND_URL = process.env.NEXT_PUBLIC_FRONTEND_URL || 'https://system.nipanaatlas.co.tz';
 
 export const getApiUrl = (path: string) => {
