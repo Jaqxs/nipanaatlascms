@@ -32,7 +32,7 @@ const QUICK_ACTIONS = [
 
 const fmtWeight = (g: number) => (g >= 1000 ? `${(g / 1000).toFixed(2)} kg` : `${g.toFixed(1)} g`);
 
-const DEFAULT_GOLD_PRICE = { current: 75.42, delta: "+1.2%", asOf: "Live Spot", history: [74, 75, 74.5, 75.8, 75.42] };
+const DEFAULT_GOLD_PRICE = { current: 75.42, delta: 0.92, asOf: "Live Spot", history: [74, 75, 74.5, 75.8, 75.42] };
 const DEFAULT_STOCK_BY_PURITY = [
   { label: "24K (99.9%)", value: 0 },
   { label: "22K (91.6%)", value: 0 },
