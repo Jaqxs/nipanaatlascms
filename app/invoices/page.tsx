@@ -51,20 +51,12 @@ export default function InvoicesPage() {
     setLoading(true);
     try {
       const res = await fetch(getApiUrl('/api/invoices'));
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      
       const data = await res.json();
-      if (Array.isArray(data) && data.length > 0) {
-        setInvoices(data);
-        backupData('invoices', data);
-        setIsUsingBackup(false);
-      } else {
-        const b = getBackup('invoices');
-        if (b) {
-          setInvoices(b);
-          setIsUsingBackup(true);
-        } else {
-          setInvoices([]);
-        }
-      }
+      setInvoices(Array.isArray(data) ? data : []);
+      backupData('invoices', data);
+      setIsUsingBackup(false);
     } catch (err) {
       console.error("Failed to fetch invoices:", err);
       const b = getBackup('invoices');
@@ -73,6 +65,7 @@ export default function InvoicesPage() {
         setIsUsingBackup(true);
       } else {
         setInvoices([]);
+        setIsUsingBackup(false);
       }
     } finally {
       setLoading(false);

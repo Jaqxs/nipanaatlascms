@@ -68,34 +68,31 @@ export default function InventoryPage() {  const [tab, setTab] = useState<"batch
     setLoading(true);
     try {
       const res = await fetch(getApiUrl('/api/inventory'));
-      if (!res.ok) throw new Error("API failed");
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
       
       const data = await res.json();
-      // VALIDATE DATA STRUCTURE
-      const validData = Array.isArray(data) ? data.filter(item => item && typeof item === 'object') : [];
+      const validData = Array.isArray(data) ? data : [];
+      setInventory(validData);
       
       if (validData.length > 0) {
-        setInventory(validData);
         backupData('inventory', validData);
-        setRecovering(false);
-      } else {
-        const statusErr = res.status !== 200 ? `Server Error: ${res.status}` : "Invalid data format";
-        setError(statusErr);
-        throw new Error(statusErr);
       }
+      setRecovering(false);
+      setError(null);
     } catch (err) {
       console.warn("Failed to fetch inventory, trying backup:", err);
       const msg = err instanceof Error ? err.message : String(err);
       setError(msg);
 
       const b = getBackup('inventory');
-      const validBackup = Array.isArray(b) ? b.filter(item => item && typeof item === 'object') : [];
+      const validBackup = Array.isArray(b) ? b : [];
       
       if (validBackup.length > 0) {
         setInventory(validBackup);
         setRecovering(true);
       } else {
         setInventory([]);
+        setRecovering(false);
       }
     } finally {
       setLoading(false);

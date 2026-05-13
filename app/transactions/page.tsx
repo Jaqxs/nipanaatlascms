@@ -60,33 +60,31 @@ export default function TransactionsPage() {
     setLoading(true);
     try {
       const res = await fetch(getApiUrl('/api/transactions'));
-      if (!res.ok) throw new Error("API failed");
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
       
       const data = await res.json();
-      const validData = Array.isArray(data) ? data.filter(item => item && typeof item === 'object') : [];
+      const validData = Array.isArray(data) ? data : [];
+      setRows(validData);
       
       if (validData.length > 0) {
-        setRows(validData);
         backupData('transactions', validData);
-        setRecovering(false);
-      } else {
-        const statusErr = res.status !== 200 ? `Server Error: ${res.status}` : "Invalid data format";
-        setError(statusErr);
-        throw new Error(statusErr);
       }
+      setRecovering(false);
+      setError(null);
     } catch (err) {
       console.warn("Failed to fetch transactions, trying backup:", err);
       const msg = err instanceof Error ? err.message : String(err);
       setError(msg);
 
       const backup = getBackup('transactions');
-      const validBackup = Array.isArray(backup) ? backup.filter(item => item && typeof item === 'object') : [];
+      const validBackup = Array.isArray(backup) ? backup : [];
       
       if (validBackup.length > 0) {
         setRows(validBackup);
         setRecovering(true);
       } else {
         setRows([]);
+        setRecovering(false);
       }
     } finally {
       setLoading(false);

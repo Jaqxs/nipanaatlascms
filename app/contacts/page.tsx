@@ -70,33 +70,27 @@ export default function ContactsPage() {
     setLoading(true);
     try {
       const res = await fetch(getApiUrl('/api/contacts'));
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      
       const data = await res.json();
+      setContacts(Array.isArray(data) ? data : []);
       if (Array.isArray(data) && data.length > 0) {
-        setContacts(data);
         backupData('contacts', data);
-        setRecovering(false);
-      } else {
-        const statusErr = res.status !== 200 ? `Server Error: ${res.status}` : "Invalid data format";
-        setError(statusErr);
-        const b = getBackup('contacts');
-        if (b) {
-          setContacts(b);
-          setRecovering(true);
-        } else {
-          setContacts([]);
-        }
       }
+      setRecovering(false);
+      setError(null);
     } catch (err) {
       console.error("Failed to fetch contacts:", err);
       const msg = err instanceof Error ? err.message : String(err);
       setError(msg);
 
       const b = getBackup('contacts');
-      if (b) {
+      if (b && Array.isArray(b) && b.length > 0) {
         setContacts(b);
         setRecovering(true);
       } else {
         setContacts([]);
+        setRecovering(false);
       }
     } finally {
       setLoading(false);

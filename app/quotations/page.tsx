@@ -52,28 +52,27 @@ export default function QuotationsPage() {
     setLoading(true);
     try {
       const res = await fetch(getApiUrl('/api/quotations'));
-      if (!res.ok) throw new Error("API failed");
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
       
       const data = await res.json();
-      const validData = Array.isArray(data) ? data.filter(item => item && typeof item === 'object') : [];
+      const validData = Array.isArray(data) ? data : [];
+      setQuotations(validData);
       
       if (validData.length > 0) {
-        setQuotations(validData);
         backupData('quotations', validData);
-        setIsUsingBackup(false);
-      } else {
-        throw new Error("No data");
       }
+      setIsUsingBackup(false);
     } catch (err) {
       console.warn("Failed to fetch quotations, trying backup:", err);
       const b = getBackup('quotations');
-      const validBackup = Array.isArray(b) ? b.filter(item => item && typeof item === 'object') : [];
+      const validBackup = Array.isArray(b) ? b : [];
       
       if (validBackup.length > 0) {
         setQuotations(validBackup);
         setIsUsingBackup(true);
       } else {
         setQuotations([]);
+        setIsUsingBackup(false);
       }
     } finally {
       setLoading(false);

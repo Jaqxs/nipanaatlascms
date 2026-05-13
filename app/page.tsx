@@ -56,32 +56,25 @@ export default function Dashboard() {
         fetch(getApiUrl('/api/transactions?limit=8'))
       ]);
       
-      const statsData = statsRes.ok ? await statsRes.json() : null;
-      const txData = txsRes.ok ? await txsRes.json() : [];
+      if (!statsRes.ok || !txsRes.ok) {
+        throw new Error(`Connectivity issues: Stats ${statsRes.status}, Txs ${txsRes.status}`);
+      }
+
+      const statsData = await statsRes.json();
+      const txData = await txsRes.json();
       
       if (statsData && !statsData.error) {
         setStats(statsData);
         backupData('dashboard_stats', statsData);
-      } else {
-        const statusErr = statsRes.status !== 200 ? `Server Error: ${statsRes.status}` : "Invalid data format";
-        setError(statusErr);
-        const b = getBackup('dashboard_stats');
-        if (b) setStats(b);
       }
-
-      const validTx = Array.isArray(txData) ? txData.filter(item => item && typeof item === 'object') : [];
-      if (validTx.length > 0) {
-        setRecentTx(validTx);
-        backupData('transactions', validTx);
-        setRecovering(false);
-      } else {
-        const b = getBackup('transactions');
-        const validBackup = Array.isArray(b) ? b.filter(item => item && typeof item === 'object') : [];
-        if (validBackup.length > 0) {
-          setRecentTx(validBackup.slice(0, 8));
-          setRecovering(true);
-        }
+      
+      setRecentTx(Array.isArray(txData) ? txData : []);
+      if (Array.isArray(txData) && txData.length > 0) {
+        backupData('transactions', txData);
       }
+      
+      setRecovering(false);
+      setError(null);
     } catch (err) {
       console.warn("Failed to fetch dashboard data, trying backup:", err);
       const msg = err instanceof Error ? err.message : String(err);
@@ -90,10 +83,13 @@ export default function Dashboard() {
       const bStats = getBackup('dashboard_stats');
       const bTx = getBackup('transactions');
       if (bStats) setStats(bStats);
-      const validBackupTx = Array.isArray(bTx) ? bTx.filter(item => item && typeof item === 'object') : [];
+      
+      const validBackupTx = Array.isArray(bTx) ? bTx : [];
       if (validBackupTx.length > 0) {
         setRecentTx(validBackupTx.slice(0, 8));
         setRecovering(true);
+      } else {
+        setRecovering(false); // No data and no backup, just empty state
       }
     } finally {
       setLoading(false);
