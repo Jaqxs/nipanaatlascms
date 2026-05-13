@@ -3,14 +3,14 @@ import { prisma } from './prisma';
 export async function getDb() {
   return {
     mode: 'postgres',
-    // Prisma already handles table creation via migrations, 
-    // but we can ensure it's connected
+    // Standardizing on raw query support for existing SQL-based routes
+    // This allows the app to work without refactoring every single page
     all: async (sql: string, params: any = []) => {
-      let pgSql = sql.replace(/\?/g, (_, i) => `$${i + 1}`);
+      const pgSql = sql.replace(/\?/g, (_, i) => `$${i + 1}`);
       return await prisma.$queryRawUnsafe(pgSql, ...params);
     },
     get: async (sql: string, params: any = []) => {
-      let pgSql = sql.replace(/\?/g, (_, i) => `$${i + 1}`);
+      const pgSql = sql.replace(/\?/g, (_, i) => `$${i + 1}`);
       const rows: any[] = await prisma.$queryRawUnsafe(pgSql, ...params);
       return rows[0] || null;
     },
