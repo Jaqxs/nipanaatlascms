@@ -58,7 +58,7 @@ export async function PATCH(request: Request) {
     }
 
     if (action === 'status') {
-      const current = await db.get('SELECT status FROM contacts WHERE id = ?', [id]);
+      const current = await db.get('SELECT status FROM contacts WHERE id = ?', [id]) as any;
       const next = current?.status === 'active' ? 'inactive' : 'active';
       await db.run('UPDATE contacts SET status = ? WHERE id = ?', [next, id]);
       return NextResponse.json({ success: true, status: next });
