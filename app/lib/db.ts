@@ -12,15 +12,14 @@ export async function getDb() {
   if (!pgClient) {
     pgClient = new Client({ 
       connectionString: PG_URL,
-      connectionTimeoutMillis: 10000,
+      connectionTimeoutMillis: 3000, // Reduced to 3s to prevent proxy timeouts
     });
     
     try {
       await pgClient.connect();
       console.log("[DATABASE] Successfully connected to PostgreSQL.");
       
-      // Initialize Tables if missing (Postgres Syntax)
-      // Using quoted identifiers to support existing camelCase naming conventions
+      // Initialize Tables...
       await pgClient.query(`
         CREATE TABLE IF NOT EXISTS transactions (
           id TEXT PRIMARY KEY, "ref" TEXT, "date" TEXT, "type" TEXT, "party" TEXT, 
@@ -53,6 +52,7 @@ export async function getDb() {
       INITIALIZED = true;
     } catch (e: any) {
       console.error("[DATABASE] PostgreSQL Connection Failed:", e.message);
+      pgClient = null; // Reset so we can try again on next request
       throw e;
     }
   }
