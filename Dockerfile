@@ -14,6 +14,7 @@ WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 ENV NEXT_TELEMETRY_DISABLED=1
+RUN npx prisma generate
 RUN npm run build
 
 # Production image, copy all the files and run next
@@ -43,8 +44,8 @@ USER root
 RUN mkdir -p /app/data && chown -R nextjs:nodejs /app/data && chmod -R 777 /app/data
 
 USER nextjs
-EXPOSE 3005
-ENV PORT=3005
+EXPOSE 3000
+ENV PORT=3000
 ENV HOSTNAME="0.0.0.0"
 
 # Start script that ensures permissions every time

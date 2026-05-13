@@ -1,0 +1,73 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Transaction {
+  id          String   @id @default(uuid())
+  ref         String?
+  date        String?
+  type        String?
+  party       String?
+  amount      Float?
+  status      String?
+  description String?
+  submittedBy String?
+
+  @@map("transactions")
+}
+
+model Site {
+  id             String  @id @default(uuid())
+  name           String?
+  location       String?
+  manager        String?
+  type           String?
+  status         String?
+  productionRate Float?
+
+  @@map("sites")
+}
+
+model Inventory {
+  id       String  @id @default(uuid())
+  batch    String?
+  weight   Float?
+  karat    String?
+  fine     Float?
+  source   String?
+  location String?
+  status   String?
+  value    Float?
+
+  @@map("inventory")
+}
+
+model Contact {
+  id             String  @id @default(uuid())
+  name           String?
+  email          String?
+  phone          String?
+  location       String?
+  status         String?
+  type           String?
+  joined         String?
+  totalPurchases Float?  @default(0)
+  outstanding    Float?  @default(0)
+  lastTx         String?
+  totalSupplied_g Float? @default(0)
+  totalPaid      Float?  @default(0)
+
+  @@map("contacts")
+}
+
+model Setting {
+  key   String @id
+  value String
+
+  @@map("settings")
+}
