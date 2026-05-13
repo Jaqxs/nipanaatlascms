@@ -21,6 +21,30 @@ export function PersistenceProvider({ children }: { children: React.ReactNode })
 
   useEffect(() => {
     setLastSync(localStorage.getItem('gbms_last_sync'));
+
+    // Background diagnostic loop
+    const checkStatus = async () => {
+      try {
+        const res = await fetch('/api/diag');
+        if (res.ok) {
+          const diag = await res.json();
+          if (diag.connectivity.hub === "connected") {
+            setErrorDetail(null);
+          } else {
+            // Surface specific internal errors (e.g. DB failures)
+            const error = diag.connectivity.error || `Hub Status: ${diag.connectivity.hub}`;
+            setErrorDetail(error);
+          }
+        }
+      } catch (e) {
+        // Only set error if we were already in a failing state or if it's a network error
+        console.warn("[PERSISTENCE] Diagnostic check failed.");
+      }
+    };
+
+    checkStatus();
+    const timer = setInterval(checkStatus, 15000); // Check every 15s
+    return () => clearInterval(timer);
   }, []);
 
   const backupData = (key: string, data: any) => {
