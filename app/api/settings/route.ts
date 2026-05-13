@@ -9,9 +9,21 @@ export async function GET() {
     settingsRows.forEach((row: any) => {
       settings[row.key] = JSON.parse(row.value);
     });
-    return NextResponse.json(settings);
+    return new NextResponse(JSON.stringify(settings), {
+      status: 200,
+      headers: {
+        'Access-Control-Allow-Origin': '*',
+        'Content-Type': 'application/json',
+      }
+    });
   } catch (error) {
-    return NextResponse.json({ error: 'Failed to fetch settings' }, { status: 500 });
+    return new NextResponse(JSON.stringify({ error: 'Failed to fetch settings' }), {
+      status: 500,
+      headers: {
+        'Access-Control-Allow-Origin': '*',
+        'Content-Type': 'application/json',
+      }
+    });
   }
 }
 
@@ -27,8 +39,20 @@ export async function POST(request: Request) {
       );
     }
 
-    return NextResponse.json({ success: true });
+    return new NextResponse(JSON.stringify({ success: true }), {
+      status: 200,
+      headers: {
+        'Access-Control-Allow-Origin': '*',
+        'Content-Type': 'application/json',
+      }
+    });
   } catch (error) {
-    return NextResponse.json({ error: 'Failed to update settings' }, { status: 500 });
+    return new NextResponse(JSON.stringify({ error: 'Failed to update settings' }), {
+      status: 500,
+      headers: {
+        'Access-Control-Allow-Origin': '*',
+        'Content-Type': 'application/json',
+      }
+    });
   }
 }

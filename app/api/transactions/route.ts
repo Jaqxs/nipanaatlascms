@@ -16,9 +16,21 @@ export async function GET(request: Request) {
     }
     
     const transactions = await db.all(query);
-    return NextResponse.json(transactions);
+    return new NextResponse(JSON.stringify(transactions), {
+      status: 200,
+      headers: {
+        'Access-Control-Allow-Origin': '*',
+        'Content-Type': 'application/json',
+      }
+    });
   } catch (error) {
-    return NextResponse.json({ error: 'Failed to fetch transactions' }, { status: 500 });
+    return new NextResponse(JSON.stringify({ error: 'Failed to fetch transactions' }), {
+      status: 500,
+      headers: {
+        'Access-Control-Allow-Origin': '*',
+        'Content-Type': 'application/json',
+      }
+    });
   }
 }
 
@@ -83,8 +95,20 @@ export async function PATCH(request: Request) {
     const status = action === 'approve' ? 'confirmed' : 'rejected';
     await db.run('UPDATE transactions SET status = ? WHERE ref = ?', [status, ref]);
     
-    return NextResponse.json({ success: true });
+    return new NextResponse(JSON.stringify({ success: true }), {
+      status: 200,
+      headers: {
+        'Access-Control-Allow-Origin': '*',
+        'Content-Type': 'application/json',
+      }
+    });
   } catch (error) {
-    return NextResponse.json({ error: 'Failed to update transaction' }, { status: 500 });
+    return new NextResponse(JSON.stringify({ error: 'Failed to update transaction' }), {
+      status: 500,
+      headers: {
+        'Access-Control-Allow-Origin': '*',
+        'Content-Type': 'application/json',
+      }
+    });
   }
 }

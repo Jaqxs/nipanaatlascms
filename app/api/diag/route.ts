@@ -62,5 +62,11 @@ export async function GET() {
     stats.connectivity.hub = "unreachable";
   }
 
-  return NextResponse.json(stats);
+  return new NextResponse(JSON.stringify(stats), {
+    status: 200,
+    headers: {
+      'Access-Control-Allow-Origin': '*',
+      'Content-Type': 'application/json',
+    }
+  });
 }
