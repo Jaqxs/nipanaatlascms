@@ -8,7 +8,6 @@ import { RowActionsMenu } from "../components/RowActionsMenu";
 import { ExportModal } from "../components/ExportModal";
 import { TransactionDetailModal } from "../components/TransactionDetailModal";
 import { PersistenceBanner } from "../components/PersistenceBanner";
-import { RECENT_TX } from "../lib/mockData";
 import { useCurrency } from "../lib/currency-context";
 import { useDateRange } from "../lib/date-range-context";
 import { getApiUrl } from "../lib/config";

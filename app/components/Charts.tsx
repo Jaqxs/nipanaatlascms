@@ -4,7 +4,14 @@ import {
   XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, ReferenceLine,
   ReferenceArea, Legend, ComposedChart,
 } from "recharts";
-import { SALES_VS_EXPENSES, PROFIT_TREND, STOCK_BY_PURITY, CASH_FLOW } from "../lib/mockData";
+const SALES_VS_EXPENSES: any[] = [];
+const PROFIT_TREND: any[] = [];
+const STOCK_BY_PURITY: any[] = [
+  { label: "24K (99.9%)", value: 0, color: "#b8893d" },
+  { label: "22K (91.6%)", value: 0, color: "#dcb35a" },
+  { label: "18K (75.0%)", value: 0, color: "#c89b62" },
+];
+const CASH_FLOW: any[] = [];
 
 const tickStyle = { fontSize: 11, fill: "#8a7e6c" };
 const gridStroke = "#ece2cf";

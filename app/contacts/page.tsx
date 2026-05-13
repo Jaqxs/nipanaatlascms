@@ -5,7 +5,34 @@ import { Badge } from "../components/Badge";
 import { Modal } from "../components/Modal";
 import { RowActionsMenu } from "../components/RowActionsMenu";
 import { ExportModal } from "../components/ExportModal";
-import { CUSTOMERS, SUPPLIERS, Customer, Supplier, fmtWeight } from "../lib/mockData";
+export interface Customer {
+  id: string;
+  name: string;
+  email: string;
+  phone: string;
+  location: string;
+  status: string;
+  totalPurchases: number;
+  outstanding: number;
+  lastTx: string;
+  joined: string;
+}
+
+export interface Supplier {
+  id: string;
+  name: string;
+  email: string;
+  contact: string;
+  location: string;
+  status: string;
+  totalSupplied_g: number;
+  totalPaid: number;
+  outstanding: number;
+  lastDelivery: string;
+  joined: string;
+}
+
+const fmtWeight = (g: number) => (g >= 1000 ? `${(g / 1000).toFixed(2)} kg` : `${g.toFixed(1)} g`);
 import { PersistenceBanner } from "../components/PersistenceBanner";
 import { useCurrency } from "../lib/currency-context";
 import { getApiUrl } from "../lib/config";

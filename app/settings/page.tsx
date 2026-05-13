@@ -3,7 +3,6 @@ import { useState, useEffect } from "react";
 import { PageHeader } from "../components/PageHeader";
 import { Badge } from "../components/Badge";
 import { Modal } from "../components/Modal";
-import { GOLD_PRICE } from "../lib/mockData";
 
 const TABS = [
   { id: "general", label: "General", icon: "ri-settings-3-line" },

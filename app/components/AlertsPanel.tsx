@@ -1,6 +1,6 @@
 "use client";
 import { useState } from "react";
-import { ALERTS } from "../lib/mockData";
+const ALERTS: any[] = [];
 
 export interface AlertItem {
   id?: string;

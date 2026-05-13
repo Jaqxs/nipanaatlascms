@@ -4,9 +4,8 @@ import { PageHeader } from "../components/PageHeader";
 import { Badge } from "../components/Badge";
 import { Modal } from "../components/Modal";
 import { ProfitTrendChart } from "../components/Charts";
-import { ANOMALIES } from "../lib/mockData";
-
-type Anomaly = typeof ANOMALIES[number];
+const ANOMALIES: any[] = [];
+type Anomaly = any;
 
 const HERO_METRICS = [
   { label: "Sales recorded", value: "$28,050", tone: "ink" },

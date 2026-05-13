@@ -1,6 +1,6 @@
 "use client";
 import { GoldPriceSparkline } from "./Charts";
-import { GOLD_PRICE } from "../lib/mockData";
+const GOLD_PRICE = { current: 75.42, delta: 1.2, asOf: "Live Spot", history: [74, 75, 74.5, 75.8, 75.42], source: "LBMA" };
 
 interface Props {
   current?: number;

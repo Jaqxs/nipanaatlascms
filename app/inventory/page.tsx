@@ -8,12 +8,24 @@ import { RowActionsMenu } from "../components/RowActionsMenu";
 import { ExportModal } from "../components/ExportModal";
 import { PersistenceBanner } from "../components/PersistenceBanner";
 import { InventoryAreaChart, StockByPurityChart } from "../components/Charts";
-import { INVENTORY_BATCHES, fmtWeight, GOLD_PRICE } from "../lib/mockData";
+const fmtWeight = (g: number) => (g >= 1000 ? `${(g / 1000).toFixed(2)} kg` : `${g.toFixed(1)} g`);
+const GOLD_PRICE = { current: 75.42 };
+
+interface Batch {
+  id?: string;
+  batch: string;
+  weight: number;
+  karat: number;
+  fine: number;
+  source: string;
+  location: string;
+  status: string;
+  value: number;
+}
+
 import { useCurrency } from "../lib/currency-context";
 import { getApiUrl } from "../lib/config";
 import { usePersistence } from "../lib/persistence-context";
-
-type Batch = typeof INVENTORY_BATCHES[number];
 
 const MOVEMENTS = [
   { t: "May 04 09:12", b: "BATCH-20260503-0042", m: "Purchase In", before: 0, d: +1240.5, after: 1240.5, by: "J. Assey", l: "TX-018340" },

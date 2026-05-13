@@ -16,9 +16,6 @@ import { TransactionDetailModal } from "./components/TransactionDetailModal";
 import {
   SalesVsExpensesChart, ProfitTrendChart, StockByPurityChart, GoldPriceSparkline,
 } from "./components/Charts";
-import {
-  KPIS, RECENT_TX, STOCK_BY_PURITY, GOLD_PRICE, GOLD_FLOW, fmtWeight,
-} from "./lib/mockData";
 import { useRole } from "./lib/role-context";
 import { useCurrency } from "./lib/currency-context";
 import { useDateRange } from "./lib/date-range-context";
@@ -31,7 +28,15 @@ const QUICK_ACTIONS = [
   { label: "New Invoice", icon: "ri-file-paper-2-line", href: "/invoices?action=new" },
   { label: "New Quotation", icon: "ri-price-tag-3-line", href: "/quotations?action=new" },
   { label: "Log Expense", icon: "ri-coin-line", href: "/transactions?action=new" },
-  { label: "Adjust Stock", icon: "ri-archive-line", href: "/inventory?action=new" },
+];
+
+const fmtWeight = (g: number) => (g >= 1000 ? `${(g / 1000).toFixed(2)} kg` : `${g.toFixed(1)} g`);
+
+const DEFAULT_GOLD_PRICE = { current: 75.42, delta: "+1.2%", asOf: "Live Spot", history: [74, 75, 74.5, 75.8, 75.42] };
+const DEFAULT_STOCK_BY_PURITY = [
+  { label: "24K (99.9%)", value: 0 },
+  { label: "22K (91.6%)", value: 0 },
+  { label: "18K (75.0%)", value: 0 },
 ];
 
 export default function Dashboard() {
@@ -131,17 +136,17 @@ export default function Dashboard() {
           <KpiCard label="Total Expenses" value={format(stats?.totalExpenses || 0, { compact: true })} fullValue={format(stats?.totalExpenses || 0)} delta={{ value: "—", positive: false }} hint="real-time" icon="ri-arrow-right-down-line" />
           <KpiCard label="Net P&L" value={format(stats?.netProfit || 0, { compact: true })} fullValue={format(stats?.netProfit || 0)} delta={{ value: "—", positive: true }} hint="margin 34.5%" icon="ri-scales-3-line" emphasis="gold" />
           <KpiCard label="Gold Stock" value={fmtWeight(stats?.stockWeight || 0)} hint={`active batches`} icon="ri-archive-stack-line" />
-          <KpiCard label="Stock Value" value={format(stats?.stockValue || 0, { compact: true })} fullValue={format(stats?.stockValue || 0)} hint={`@ ${formatUSD(GOLD_PRICE.current)}/g`} icon="ri-coin-line" />
+          <KpiCard label="Stock Value" value={format(stats?.stockValue || 0, { compact: true })} fullValue={format(stats?.stockValue || 0)} hint={`@ ${formatUSD(DEFAULT_GOLD_PRICE.current)}/g`} icon="ri-coin-line" />
           <KpiCard label="Cash Position" value={format(stats?.cashPosition || 0, { compact: true })} fullValue={format(stats?.cashPosition || 0)} hint="liquid · approximation" icon="ri-wallet-3-line" />
         </div>
       ) : (
         <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-4">
-          <KpiCard label="Gold Sold" value={fmtWeight(GOLD_FLOW.sold.weight_g)} hint={`${GOLD_FLOW.sold.count} sales · ${rangeLabel}`} icon="ri-arrow-up-circle-line" />
-          <KpiCard label="Gold Purchased" value={fmtWeight(GOLD_FLOW.purchased.weight_g)} hint={`${GOLD_FLOW.purchased.count} buys · ${rangeLabel}`} icon="ri-arrow-down-circle-line" />
+          <KpiCard label="Gold Sold" value={fmtWeight(stats?.goldSoldWeight || 0)} hint={`${stats?.goldSoldCount || 0} sales · ${rangeLabel}`} icon="ri-arrow-up-circle-line" />
+          <KpiCard label="Gold Purchased" value={fmtWeight(stats?.goldPurchasedWeight || 0)} hint={`${stats?.goldPurchasedCount || 0} buys · ${rangeLabel}`} icon="ri-arrow-down-circle-line" />
           <KpiCard label="Gold Stock" value={fmtWeight(stats?.stockWeight || 0)} hint={`active batches`} icon="ri-archive-stack-line" />
-          <KpiCard label="My Submissions" value="42" hint="this month · 95% approved" icon="ri-quill-pen-line" />
+          <KpiCard label="My Submissions" value="0" hint="this month" icon="ri-quill-pen-line" />
           <KpiCard label="My Invoices" value={`${stats?.pendingInvoices?.count || 0}`} hint={`${stats?.pendingInvoices?.count || 0} pending`} icon="ri-file-paper-2-line" />
-          <KpiCard label="Active Gold Price" value={`$${GOLD_PRICE.current.toFixed(2)}/g`} hint="USD · spot" icon="ri-coin-line" emphasis="gold" />
+          <KpiCard label="Active Gold Price" value={`$${DEFAULT_GOLD_PRICE.current.toFixed(2)}/g`} hint="USD · spot" icon="ri-coin-line" emphasis="gold" />
         </div>
       )}
 
@@ -173,14 +178,14 @@ export default function Dashboard() {
                 <StockByPurityChart />
               </div>
               <div className="md:col-span-2 space-y-4">
-                {STOCK_BY_PURITY.map((item) => (
+                {(stats?.stockByPurity || DEFAULT_STOCK_BY_PURITY).map((item: any) => (
                   <div key={item.label} className="space-y-1.5">
                     <div className="flex justify-between text-xs">
                       <span className="text-ink font-medium">{item.label}</span>
                       <span className="text-ink-muted font-numeric">{fmtWeight(item.value)}</span>
                     </div>
                     <div className="h-1.5 w-full bg-paper-100 rounded-full overflow-hidden">
-                      <div className="h-full bg-gold-500 rounded-full" style={{ width: `${(item.value / totalFineWeight) * 100}%` }} />
+                      <div className="h-full bg-gold-500 rounded-full" style={{ width: totalFineWeight > 0 ? `${(item.value / totalFineWeight) * 100}%` : '0%' }} />
                     </div>
                   </div>
                 ))}
@@ -191,10 +196,10 @@ export default function Dashboard() {
 
         <div className="space-y-6">
           <GoldPriceCard
-            current={GOLD_PRICE.current}
-            delta={GOLD_PRICE.delta}
-            asOf={GOLD_PRICE.asOf}
-            history={GOLD_PRICE.history as number[]}
+            current={DEFAULT_GOLD_PRICE.current}
+            delta={DEFAULT_GOLD_PRICE.delta}
+            asOf={DEFAULT_GOLD_PRICE.asOf}
+            history={DEFAULT_GOLD_PRICE.history as number[]}
             onUpdate={() => setPriceOpen(true)}
           />
 
@@ -220,13 +225,7 @@ export default function Dashboard() {
           </div>
 
           <AlertsPanel
-            alerts={RECENT_TX.filter(t => t.status === 'rejected').map(t => ({
-              id: t.ref,
-              title: "Transaction Rejected",
-              desc: `${t.party} · ${format(t.amount)}`,
-              time: "2h ago",
-              type: "critical"
-            }))}
+            alerts={[]}
             onOpen={setAlertDetail}
           />
         </div>

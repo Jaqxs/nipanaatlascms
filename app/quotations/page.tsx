@@ -6,12 +6,18 @@ import { Badge, statusToTone } from "../components/Badge";
 import { Modal } from "../components/Modal";
 import { RowActionsMenu } from "../components/RowActionsMenu";
 import { ExportModal } from "../components/ExportModal";
-import { QUOTATIONS } from "../lib/mockData";
+interface Quote {
+  id: string;
+  no: string;
+  customer: string;
+  amount: number;
+  status: string;
+  expires: string;
+}
+
 import { useCurrency } from "../lib/currency-context";
 import { getApiUrl } from "../lib/config";
 import { usePersistence } from "../lib/persistence-context";
-
-type Quote = typeof QUOTATIONS[number];
 
 const STATUSES = ["All", "DRAFT", "PENDING", "APPROVED", "ACCEPTED", "REJECTED", "EXPIRED", "CONVERTED"];
 
